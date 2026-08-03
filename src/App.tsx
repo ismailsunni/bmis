@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/AppShell'
 import { ProtectedRoute } from '@/auth/ProtectedRoute'
+import { AuthCallback } from '@/auth/AuthCallback'
 import { can } from '@/auth/permissions'
 import { LoginPage } from '@/features/LoginPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -28,6 +29,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/masuk" element={<LoginPage />} />
+      {/* Outside the guards on purpose — a guard here would navigate away
+          before the session can be read out of the URL. */}
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/" element={shell(<DashboardPage />)} />
       <Route path="/donasi" element={shell(<DonationsPage />)} />
       <Route path="/donasi/impor" element={shell(<DonationImportPage />, can.recordDonation)} />

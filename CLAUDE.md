@@ -69,6 +69,8 @@ An auth account is not access. `handle_new_user` creates profiles `is_active = f
 
 This is also what makes Google sign-in workable at all: GoTrue rejects an unlinked OAuth identity as a signup when signups are disabled — even for an email that already has an account — so Google needs `enable_signup = true`, and the gate is what keeps that safe. `role === 'none'` renders `PendingApproval` rather than redirecting, since there is no page such an account may see.
 
+Provider and magic-link redirects land on `/auth/callback`, which is registered **outside** `ProtectedRoute`. This is load-bearing: the session is established asynchronously from the URL while guards decide synchronously, so a guarded callback navigates away and takes `?code=` with it — the exchange then never happens and the user bounces back to the login form silently. Never move that route inside a guard.
+
 The gate exists because Google sign-in lets anyone with a Google account reach the auth endpoint. Without the gate, invite-only would rest solely on GoTrue's signup toggle, and flipping it would expose the org's financial aggregates and masked donor names to strangers. Do not add a policy with `using (true)` — that reintroduces the hole.
 
 ## Domain rules that are easy to get wrong

@@ -123,6 +123,13 @@ To enable Google: **Authentication → Sign In / Providers → Google**, with th
 client ID and secret from a Google Cloud OAuth client whose authorised redirect
 URI is `https://<project-ref>.supabase.co/auth/v1/callback`.
 
+Every provider and magic-link redirect lands on the app's own
+`/auth/callback` route, which must be in **Authentication → URL Configuration →
+Redirect URLs**. That route sits outside the route guards deliberately: the
+session is read out of the URL asynchronously, so a guard evaluating first would
+navigate away and discard the authorisation code, leaving the user back at the
+login form with nothing to explain it.
+
 ## Transfer codes
 
 Donors are asked to append a published 3-digit code to the transfer amount, so

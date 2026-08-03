@@ -6,6 +6,13 @@ import { Button, Card, ErrorNote, Field, Input } from '@/components/ui'
 
 type Mode = 'password' | 'magic'
 
+/**
+ * BASE_URL already ends in a slash and carries the /bmis/ prefix on Pages, so
+ * this stays correct both locally and when served from a subpath.
+ */
+const callbackUrl = () =>
+  `${window.location.origin}${import.meta.env.BASE_URL}auth/callback`
+
 /** Google's mark, inlined so no request leaves the page to fetch it. */
 function GoogleMark() {
   return (
@@ -56,7 +63,7 @@ export function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       // BASE_URL keeps this correct under the /bmis/ path on Pages
-      options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
+      options: { redirectTo: callbackUrl() },
     })
     if (error) {
       setError(error.message)
@@ -74,7 +81,8 @@ export function LoginPage() {
         if (error) throw error
       } else {
         const { error } = await supabase.auth.signInWithOtp({
-          email, options: { shouldCreateUser: false },
+          email,
+          options: { shouldCreateUser: false, emailRedirectTo: callbackUrl() },
         })
         if (error) throw error
         setSent(true)
