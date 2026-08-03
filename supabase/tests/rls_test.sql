@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(63);
+select plan(69);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -394,7 +394,33 @@ select lives_ok(
   'super_admin may still post into a locked period');
 select tests.logout();
 
--- ============================================================= 10. audit trail
+-- ========================================================== 10. transfer codes
+select tests.login(tests.uid('view'), 'viewer');
+select isnt_empty($$ select 1 from public.donation_codes_v $$,
+  'every role can resolve a published transfer code, viewer included');
+select is(
+  (select kind from public.donation_codes_v where code = '101'),
+  'fund_type', 'a code naming a fund type resolves to that fund type');
+select is(
+  (select name from public.donation_codes_v where code = '153'),
+  'Sedekah Bantu Petani', 'a code naming a programme resolves to that programme');
+select is_empty(
+  $$ select 1 from public.donation_codes_v group by code having count(*) > 1 $$,
+  'no code resolves to two destinations');
+select tests.logout();
+
+select tests.login(tests.uid('super'), 'super_admin');
+select throws_ok(
+  $$ insert into public.programs (name, slug, code)
+     values ('Bentrok', 'bentrok', '101') $$,
+  '23505', null, 'a programme cannot claim a code already used by a fund type');
+select throws_ok(
+  $$ insert into public.programs (name, slug, code)
+     values ('Salah bentuk', 'salah-bentuk', '15') $$,
+  '23514', null, 'a transfer code must be exactly three digits');
+select tests.logout();
+
+-- ============================================================= 11. audit trail
 select is(
   (select count(*)::int from public.audit_log
    where table_name = 'donations' and record_id = '22222222-2222-2222-2222-222222222222'),
