@@ -59,6 +59,7 @@ These are the rules that distinguish correct code from code that merely runs.
 - `fund_balance()` and `next_counter()` are `SECURITY DEFINER` because an amil's RLS view of `donations` is only their own rows; an invoker-rights balance would be wrong precisely inside the guard that needs it.
 - Index expressions must be `IMMUTABLE` — `date_trunc('month', timestamptz)` is not.
 - In a single test transaction every row shares the same `now()`, so order audit assertions by `id`, never `created_at`.
+- A PL/pgSQL variable that shares a name with a column in scope raises `42702` **at execution time, not creation time** — `create function` accepts it happily. `rpc_dashboard_summary` shipped broken this way and took down the dashboard for every role. Qualify column references inside subqueries, and make sure every RPC is actually *called* by the test suite; asserting a policy exists proves nothing about the function that reads it.
 
 ## Domain rules that are easy to get wrong
 
@@ -82,7 +83,7 @@ These are the rules that distinguish correct code from code that merely runs.
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 69 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 80 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 

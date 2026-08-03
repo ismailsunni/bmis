@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(69);
+select plan(80);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -420,7 +420,58 @@ select throws_ok(
   '23514', null, 'a transfer code must be exactly three digits');
 select tests.logout();
 
--- ============================================================= 11. audit trail
+-- ====================================================== 11. dashboard & reports
+-- These RPCs were shipped untested and a plain ambiguous-column error took the
+-- whole dashboard down for every role. Calling them per role is the point:
+-- a compile error inside plpgsql only surfaces on execution.
+select tests.login(tests.uid('view'), 'viewer');
+select lives_ok(
+  $$ select public.rpc_dashboard_summary(current_date - 30, current_date) $$,
+  'viewer can load the dashboard');
+select ok(
+  (public.rpc_dashboard_summary(current_date - 30, current_date)) ? 'kpi',
+  'the dashboard payload carries its KPI block');
+select ok(
+  not ((public.rpc_dashboard_summary(current_date - 30, current_date)) ? 'top_donors'),
+  'viewer is never given the top-donor list');
+select tests.logout();
+
+select tests.login(tests.uid('amil1'), 'amil');
+select lives_ok(
+  $$ select public.rpc_dashboard_summary(current_date - 30, current_date) $$,
+  'amil can load the dashboard');
+select ok(
+  (public.rpc_dashboard_summary(current_date - 30, current_date)) ? 'mine',
+  'amil additionally gets their own collection panel');
+select tests.logout();
+
+select tests.login(tests.uid('audit'), 'auditor');
+select lives_ok(
+  $$ select public.rpc_dashboard_summary(current_date - 30, current_date) $$,
+  'auditor can load the dashboard');
+select ok(
+  (public.rpc_dashboard_summary(current_date - 30, current_date)) ? 'audit_summary',
+  'auditor additionally gets the audit activity summary');
+select tests.logout();
+
+select tests.login(tests.uid('fin'), 'finance');
+select lives_ok(
+  $$ select public.rpc_dashboard_summary(current_date - 30, current_date) $$,
+  'finance can load the dashboard');
+select ok(
+  (public.rpc_dashboard_summary(current_date - 30, current_date))
+    -> 'kpi' ? 'available_balance',
+  'the KPI block reports an available balance');
+select isnt_empty(
+  $$ select 1 from public.rpc_fund_balance_report(
+       (current_date - 30)::date, current_date::date) $$,
+  'the fund balance report returns a row per fund type');
+select lives_ok(
+  $$ select public.rpc_donor_statement('11111111-1111-1111-1111-111111111111') $$,
+  'a donor statement can be produced');
+select tests.logout();
+
+-- ============================================================= 12. audit trail
 select is(
   (select count(*)::int from public.audit_log
    where table_name = 'donations' and record_id = '22222222-2222-2222-2222-222222222222'),
