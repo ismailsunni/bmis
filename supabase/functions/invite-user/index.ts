@@ -9,10 +9,17 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const ALLOWED_ROLES = ['viewer', 'amil', 'auditor', 'finance', 'super_admin']
 
+// Two different shapes, so two variables. A CORS origin is scheme and host
+// only — the browser's Origin header never carries a path — while the invite
+// redirect has to be the full app URL, including the /<repo>/ base on Pages.
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
+const APP_URL = Deno.env.get('APP_URL') ?? undefined
+
 const cors = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  Vary: 'Origin',
 }
 
 const json = (body: unknown, status = 200) =>
@@ -56,7 +63,7 @@ Deno.serve(async (req) => {
 
   const { data: invited, error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: full_name ?? '' },
-    redirectTo: Deno.env.get('APP_ORIGIN') ?? undefined,
+    redirectTo: APP_URL,
   })
   if (error) return json({ error: error.message }, 400)
 

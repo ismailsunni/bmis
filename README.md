@@ -67,6 +67,12 @@ in secrets so it is masked in build logs and can be rotated without a commit.
 Without them the deployed app renders a configuration notice rather than a
 blank page.
 
+The `invite-user` Edge Function needs two secrets of its own
+(`supabase secrets set`): `ALLOWED_ORIGIN` is the scheme and host the app is
+served from, for CORS; `APP_URL` is the full app URL including any base path,
+used as the invitation redirect. They are separate because a CORS origin may not
+contain a path.
+
 Also set **Settings → Pages → Source** to *GitHub Actions*, and add the Pages
 URL to Supabase **Auth → URL Configuration** as the site URL and a redirect
 URL, or magic links and invitations will bounce.
