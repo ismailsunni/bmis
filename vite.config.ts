@@ -27,7 +27,10 @@ export default defineConfig({
   base,
   plugins: [react(), spaFallback()],
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@docs': fileURLToPath(new URL('./docs', import.meta.url)),
+    },
   },
   build: {
     rollupOptions: {

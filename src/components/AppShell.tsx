@@ -11,6 +11,7 @@ import {
   ScrollText,
   UserCog,
   Settings,
+  BookOpen,
   LogOut,
   Menu,
   X,
@@ -42,6 +43,8 @@ const NAV: NavItem[] = [
   { to: '/audit', label: 'Log Audit', icon: ScrollText, allow: can.readAuditLog },
   { to: '/pengguna', label: 'Pengguna', icon: UserCog, allow: can.manageUsers },
   { to: '/pengaturan', label: 'Pengaturan', icon: Settings, allow: can.manageUsers },
+  // no `allow`: every role, down to viewer, should be able to read the guide
+  { to: '/bantuan', label: 'Bantuan', icon: BookOpen },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {

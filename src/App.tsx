@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/AppShell'
 import { ProtectedRoute } from '@/auth/ProtectedRoute'
@@ -18,6 +19,12 @@ import { ReportsPage } from '@/features/reports/ReportsPage'
 import { AuditLogPage } from '@/features/audit/AuditLogPage'
 import { UsersPage } from '@/features/users/UsersPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+
+// The guide ships the markdown renderer with it, so it loads on demand rather
+// than weighing down every other page.
+const HelpPage = lazy(() =>
+  import('@/features/help/HelpPage').then((m) => ({ default: m.HelpPage })),
+)
 
 const shell = (element: React.ReactNode, allow?: Parameters<typeof ProtectedRoute>[0]['allow']) => (
   <ProtectedRoute allow={allow}>
@@ -46,6 +53,14 @@ export default function App() {
       <Route path="/audit" element={shell(<AuditLogPage />, can.readAuditLog)} />
       <Route path="/pengguna" element={shell(<UsersPage />, can.manageUsers)} />
       <Route path="/pengaturan" element={shell(<SettingsPage />, can.manageUsers)} />
+      <Route
+        path="/bantuan"
+        element={shell(
+          <Suspense fallback={<p className="text-slate-500">Memuat panduan…</p>}>
+            <HelpPage />
+          </Suspense>,
+        )}
+      />
       <Route path="*" element={shell(<p className="text-slate-500">Halaman tidak ditemukan.</p>)} />
     </Routes>
   )

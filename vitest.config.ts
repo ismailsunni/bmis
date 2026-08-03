@@ -2,6 +2,11 @@ import { defineConfig } from 'vitest/config'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@docs': fileURLToPath(new URL('./docs', import.meta.url)),
+    },
+  },
   test: { environment: 'node', include: ['src/**/*.test.ts'] },
 })

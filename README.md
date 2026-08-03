@@ -6,10 +6,12 @@ correct, and gives the board a live dashboard — with access enforced in the
 database rather than in the UI.
 
 Specification: [`PRD-baitul-maal-admin.md`](PRD-baitul-maal-admin.md).
-**Operator guide (Bahasa Indonesia): [`docs/ALUR-KERJA.md`](docs/ALUR-KERJA.md)** —
+**Operator guide (Bahasa Indonesia): [`docs/ALUR-KERJA.md`](docs/ALUR-KERJA.md)**, also
+served in the app under **Bantuan** —
 the end-to-end workflow for amil and bendahara: recording a donation, anonymous
 QRIS, transfer codes, verification, distribution, the monthly close, and locking
-a period.
+a period. The app imports that same file with `?raw`, so there is one copy and
+the page cannot drift from the document.
 Working notes for future contributors: [`CLAUDE.md`](CLAUDE.md).
 
 ## Stack
