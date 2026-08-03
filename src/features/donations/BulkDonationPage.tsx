@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/cn'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAccounts, useFundTypes, usePrograms } from '@/lib/queries'
 import { formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
@@ -21,6 +22,41 @@ import {
   type BulkRow,
 } from './bulkEntry'
 import type { PaymentMethod } from '@/types/db'
+
+/**
+ * Column template shared by the header and every row, so the two stay aligned
+ * without a table. Below sm the grid is off entirely and each field stacks.
+ */
+// Kept as one unbroken literal: Tailwind scans source text, so a class name
+// split across concatenated strings is never generated at all.
+const GRID_COLS =
+  'sm:grid-cols-[2rem_minmax(190px,3fr)_minmax(120px,1.6fr)_minmax(130px,1.8fr)_minmax(130px,1.8fr)_minmax(105px,1.2fr)_minmax(110px,1.2fr)_1.75rem]'
+
+// Phones get two columns so the short fields pair up and a card stays scannable;
+// from sm the explicit template takes over and rows align under the header.
+const ROW = `grid grid-cols-2 gap-2 sm:items-start ${GRID_COLS}`
+const HEADER = `hidden sm:grid sm:gap-2 ${GRID_COLS}`
+
+/** Spans two columns on a phone, one under the desktop template. */
+const WIDE = 'col-span-2 sm:col-span-1'
+
+/** Field labels are needed on the card layout and redundant under the header row. */
+function Cell({
+  label,
+  className,
+  children,
+}: {
+  label: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div className={className}>
+      <span className="mb-1 block text-xs font-medium text-slate-500 sm:hidden">{label}</span>
+      {children}
+    </div>
+  )
+}
 
 /**
  * Entering many donations at once — a Friday collection, a counted cash box, an
@@ -192,21 +228,28 @@ export function BulkDonationPage() {
         </div>
       )}
 
-      <div className="table-wrap">
-        <table className="tbl min-w-[1000px]">
-          <thead>
-            <tr>
-              <th className="w-8">#</th>
-              <th className="min-w-[220px]">Donatur</th>
-              <th className="min-w-[140px]">Jumlah</th>
-              <th className="min-w-[160px]">Jenis dana</th>
-              <th className="min-w-[150px]">Program</th>
-              <th className="min-w-[110px]">Metode</th>
-              <th className="min-w-[120px]">Referensi</th>
-              <th className="w-10" />
-            </tr>
-          </thead>
-          <tbody>
+      {/* One markup tree for both layouts: a card stack on phones, aligned
+          columns from sm up. Duplicating the rows per breakpoint would mean two
+          DonorPickers per line, each with its own query state. */}
+      <div className="sm:overflow-x-auto">
+        <div className="sm:min-w-[940px]">
+          <div
+            className={cn(
+              HEADER,
+              'border-b border-slate-200 pb-1.5 text-xs font-medium text-slate-500 dark:border-slate-700',
+            )}
+          >
+            <span>#</span>
+            <span>Donatur</span>
+            <span>Jumlah</span>
+            <span>Jenis dana</span>
+            <span>Program</span>
+            <span>Metode</span>
+            <span>Referensi</span>
+            <span />
+          </div>
+
+          <div className="space-y-3 sm:space-y-0">
             {rows.map((row, i) => {
               const problem = problemFor(row.key)
               const match = matchTransferCode(parseIDR(row.amount), codes)
@@ -216,12 +259,35 @@ export function BulkDonationPage() {
                 (match.program_id ?? '') === row.programId
 
               return (
-                <tr key={row.key} className={problem ? 'bg-red-50/60 dark:bg-red-900/10' : ''}>
-                  <td className="text-xs text-slate-400">{i + 1}</td>
+                <div
+                  key={row.key}
+                  className={cn(
+                    ROW,
+                    'rounded-xl border p-3 sm:rounded-none sm:border-0 sm:border-b sm:p-0 sm:pb-2 sm:pt-2',
+                    problem
+                      ? 'border-red-300 bg-red-50/60 dark:border-red-800 dark:bg-red-900/10'
+                      : 'border-slate-200 dark:border-slate-700',
+                  )}
+                >
+                  {/* Card header on phones; a plain row number from sm up. */}
+                  <div className={cn(WIDE, 'flex items-center justify-between sm:block')}>
+                    <span className="text-sm font-medium text-slate-500 sm:text-xs sm:text-slate-400">
+                      <span className="sm:hidden">Baris </span>
+                      {i + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.key)}
+                      aria-label={`Hapus baris ${i + 1}`}
+                      className="text-slate-400 hover:text-red-600 sm:hidden"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
 
-                  <td>
+                  <Cell label="Donatur" className={WIDE}>
                     {row.anonymous ? (
-                      <span className="text-sm text-slate-500">Hamba Allah</span>
+                      <p className="py-2 text-sm text-slate-500">Hamba Allah</p>
                     ) : (
                       <DonorPicker
                         value={row.donorId}
@@ -231,7 +297,7 @@ export function BulkDonationPage() {
                     <label className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
                       <input
                         type="checkbox"
-                        className="h-3.5 w-3.5"
+                        className="h-4 w-4"
                         checked={row.anonymous}
                         onChange={(e) =>
                           patch(row.key, { anonymous: e.target.checked, donorId: null })
@@ -239,13 +305,13 @@ export function BulkDonationPage() {
                       />
                       Anonim
                     </label>
-                  </td>
+                  </Cell>
 
-                  <td>
+                  <Cell label="Jumlah" className={WIDE}>
                     <Input
                       inputMode="numeric"
                       placeholder="0"
-                      className="text-right font-medium"
+                      className="text-right text-lg font-semibold sm:text-sm"
                       value={row.amount}
                       onChange={(e) => patch(row.key, { amount: maskIDR(e.target.value) })}
                     />
@@ -263,9 +329,9 @@ export function BulkDonationPage() {
                         kode {match.code} → {match.name}
                       </button>
                     )}
-                  </td>
+                  </Cell>
 
-                  <td>
+                  <Cell label="Jenis dana">
                     <Select
                       value={row.fundTypeId}
                       onChange={(e) => patch(row.key, { fundTypeId: e.target.value })}
@@ -276,9 +342,9 @@ export function BulkDonationPage() {
                         </option>
                       ))}
                     </Select>
-                  </td>
+                  </Cell>
 
-                  <td>
+                  <Cell label="Program">
                     <Select
                       value={row.programId}
                       onChange={(e) => patch(row.key, { programId: e.target.value })}
@@ -292,9 +358,9 @@ export function BulkDonationPage() {
                           </option>
                         ))}
                     </Select>
-                  </td>
+                  </Cell>
 
-                  <td>
+                  <Cell label="Metode">
                     <Select
                       value={row.method}
                       onChange={(e) => patch(row.key, { method: e.target.value as PaymentMethod })}
@@ -305,35 +371,39 @@ export function BulkDonationPage() {
                         </option>
                       ))}
                     </Select>
-                  </td>
+                  </Cell>
 
-                  <td>
+                  <Cell label="Referensi">
                     <Input
                       value={row.paymentRef}
                       placeholder="opsional"
                       onChange={(e) => patch(row.key, { paymentRef: e.target.value })}
                     />
-                  </td>
+                  </Cell>
 
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => removeRow(row.key)}
-                      aria-label={`Hapus baris ${i + 1}`}
-                      className="text-slate-400 hover:text-red-600"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
+                  <button
+                    type="button"
+                    onClick={() => removeRow(row.key)}
+                    aria-label={`Hapus baris ${i + 1}`}
+                    className="hidden text-slate-400 hover:text-red-600 sm:block sm:pt-2"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+
+                  {problem && (
+                    <p className={cn(WIDE, 'text-xs text-red-700 dark:text-red-400 sm:hidden')}>
+                      {problem}
+                    </p>
+                  )}
+                </div>
               )
             })}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
 
       {problems.length > 0 && (
-        <ul className="mt-3 space-y-1 text-sm text-red-700 dark:text-red-400">
+        <ul className="mt-3 hidden space-y-1 text-sm text-red-700 dark:text-red-400 sm:block">
           {problems.map((p, i) => {
             const index = rows.findIndex((r) => r.key === p.key) + 1
             return (

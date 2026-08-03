@@ -94,7 +94,8 @@ sekaligus — tanpa berkas mutasi bank.
    seluruh baris yang sudah ada.
 3. Isi barisnya. Setiap baris punya donatur (atau centang **Anonim**), jumlah,
    jenis dana, program, metode, dan referensi. Baris baru muncul sendiri begitu
-   baris terakhir diisi.
+   baris terakhir diisi. Di ponsel setiap baris tampil sebagai kartu bertumpuk
+   dengan label pada tiap kolom, jadi tidak perlu menggeser tabel ke samping.
 4. Bila nominal memuat kode program, muncul tautan kecil di bawah kolom jumlah
    seperti “kode 153 → Sedekah Bantu Petani”. Tekan untuk menerapkannya.
 5. Perhatikan **jumlah baris dan total** di bagian bawah — cocokkan dengan uang
