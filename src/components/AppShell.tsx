@@ -33,7 +33,7 @@ const NAV: NavItem[] = [
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { role, user, signOut } = useAuth()
+  const { role, user, signOut, roleClaimMissing } = useAuth()
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const items = NAV.filter((i) => !i.allow || i.allow(role))
@@ -99,6 +99,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <main key={location.pathname} className="min-w-0 flex-1 p-4 lg:p-6">
+        {/* Without the claim, RLS applies viewer to every query no matter what
+            this UI renders, so say so rather than showing a half-working app. */}
+        {roleClaimMissing && (
+          <div role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/25 dark:text-amber-100">
+            <p className="font-semibold">Peran tidak terbaca dari sesi</p>
+            <p className="mt-0.5">
+              Token masuk tidak memuat <code>app_metadata.user_role</code>, sehingga basis
+              data memperlakukan Anda sebagai <strong>Relawan</strong> dan sebagian besar
+              data akan tampak kosong. Aktifkan <em>Custom Access Token hook</em> ke fungsi{' '}
+              <code>public.custom_access_token_hook</code> pada pengaturan Auth, lalu keluar
+              dan masuk kembali.
+            </p>
+          </div>
+        )}
         {children}
       </main>
     </div>

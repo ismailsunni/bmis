@@ -6,8 +6,15 @@ import type { UserRole } from '@/types/db'
 interface AuthState {
   session: Session | null
   user: User | null
-  /** Read from the JWT claim set by the custom access token hook. */
+  /** The role RLS will actually apply, read from the access token's claims. */
   role: UserRole
+  /**
+   * True when the access token carries no user_role claim, i.e. the custom
+   * access token hook is not wired up. `role` is then only a display value read
+   * from profiles — the database still treats the caller as a viewer, so this
+   * is a misconfiguration, not a cosmetic issue.
+   */
+  roleClaimMissing: boolean
   loading: boolean
   signOut: () => Promise<void>
 }
@@ -17,14 +24,35 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 /** Absolute session lifetime; PRD 7.1 requires logout after 12 idle hours. */
 const IDLE_LIMIT_MS = 12 * 60 * 60 * 1000
 
-const roleFromSession = (session: Session | null): UserRole => {
-  const claim = (session?.user?.app_metadata as { user_role?: string } | undefined)?.user_role
-  return (claim as UserRole) ?? 'viewer'
+/**
+ * The role lives in the JWT claims, put there by the custom access token hook,
+ * and that is what RLS reads through current_role().
+ *
+ * It is deliberately not taken from session.user.app_metadata: that field
+ * mirrors auth.users.raw_app_meta_data, which the hook does not write. A user
+ * whose role was set only in profiles would appear here as a viewer while the
+ * database saw super_admin — the UI and RLS must read the same claim.
+ */
+function roleFromAccessToken(token: string | undefined): UserRole | null {
+  if (!token) return null
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const b64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+    const claims = JSON.parse(new TextDecoder().decode(bytes)) as {
+      app_metadata?: { user_role?: string }
+    }
+    return (claims.app_metadata?.user_role as UserRole) ?? null
+  } catch {
+    return null
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileRole, setProfileRole] = useState<UserRole | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -37,6 +65,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  const claimRole = roleFromAccessToken(session?.access_token)
+
+  // Consulted only when the claim is absent, so the UI can still name the real
+  // role while warning that the hook is not delivering it.
+  useEffect(() => {
+    if (!session || claimRole) {
+      setProfileRole(null)
+      return
+    }
+    let alive = true
+    supabase.from('profiles').select('role').eq('id', session.user.id).single()
+      .then(({ data }) => {
+        if (alive && data) setProfileRole(data.role as UserRole)
+      })
+    return () => { alive = false }
+  }, [session, claimRole])
 
   useEffect(() => {
     if (!session) return
@@ -56,10 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthState>(() => ({
     session,
     user: session?.user ?? null,
-    role: roleFromSession(session),
+    role: claimRole ?? profileRole ?? 'viewer',
+    roleClaimMissing: Boolean(session) && !claimRole,
     loading,
     signOut: async () => { await supabase.auth.signOut() },
-  }), [session, loading])
+  }), [session, claimRole, profileRole, loading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

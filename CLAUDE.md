@@ -40,7 +40,8 @@ These are the rules that distinguish correct code from code that merely runs.
 
 1. **Security lives in RLS, never in React.** The anon key ships to the browser and is public. Any access rule enforced only in the UI is not a rule. Every table has RLS enabled and default-deny.
 2. **Never put the service-role key in client code.** CI greps the bundle for it.
-3. **Roles come from the JWT**, not a `profiles` subquery: policies read `auth.jwt() -> 'app_metadata' ->> 'user_role'` via `public.current_role()` / `public.has_min_role(text)`. Adding a per-row lookup to `profiles` in a policy is a performance regression on dashboard queries.
+3. **Roles come from the JWT** — and the client must read the *same* claim. `session.user.app_metadata` is not it: that mirrors `auth.users.raw_app_meta_data`, which the access token hook never writes, so a role set only in `profiles` shows as `viewer` in React while RLS sees the real one. `AuthProvider` decodes `session.access_token` instead, and surfaces a banner when the claim is missing rather than silently degrading.
+   Policies read `auth.jwt() -> 'app_metadata' ->> 'user_role'` via `public.current_role()` / `public.has_min_role(text)`. Adding a per-row lookup to `profiles` in a policy is a performance regression on dashboard queries.
 4. **Separation of duties is a DB check**, not UI logic: `created_by <> verified_by` on donations and distributions. `super_admin` may override only with an audited reason.
 5. **`viewer` never queries base tables.** It reads masked views (`donations_public_v`, `donors_masked_v`) and the dashboard RPC; base-table SELECT policies exclude it entirely. See the departures note below for why those two views are definer-rights.
 6. **Nothing is hard-deleted.** Donations are *voided*, records are soft-deleted via `deleted_at`. `audit_log` is append-only — no UPDATE/DELETE policy exists for any role.
