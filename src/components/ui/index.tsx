@@ -1,18 +1,25 @@
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes,
-  type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+  type ReactNode,
+} from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
 const button = cva(
   'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition ' +
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ' +
-  'focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ' +
+    'focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         primary: 'bg-brand-700 text-white hover:bg-brand-800',
-        secondary: 'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 ' +
-                   'dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 dark:hover:bg-slate-700',
+        secondary:
+          'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 ' +
+          'dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 dark:hover:bg-slate-700',
         danger: 'bg-red-600 text-white hover:bg-red-700',
         ghost: 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
       },
@@ -58,20 +65,32 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 )
 Select.displayName = 'Select'
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className, ...props }, ref) => (
-    <textarea ref={ref} className={cn(fieldBase, 'py-2 min-h-[80px]', className)} {...props} />
-  ),
-)
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement>
+>(({ className, ...props }, ref) => (
+  <textarea ref={ref} className={cn(fieldBase, 'py-2 min-h-[80px]', className)} {...props} />
+))
 Textarea.displayName = 'Textarea'
 
 export function Field({
-  label, error, hint, required, children,
-}: { label: string; error?: string; hint?: string; required?: boolean; children: ReactNode }) {
+  label,
+  error,
+  hint,
+  required,
+  children,
+}: {
+  label: string
+  error?: string
+  hint?: string
+  required?: boolean
+  children: ReactNode
+}) {
   return (
     <label className="block space-y-1.5">
       <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-        {label}{required && <span className="text-red-600"> *</span>}
+        {label}
+        {required && <span className="text-red-600"> *</span>}
       </span>
       {children}
       {hint && !error && <span className="block text-xs text-slate-500">{hint}</span>}
@@ -82,10 +101,13 @@ export function Field({
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cn(
-      'rounded-xl border border-slate-200 bg-white p-4 shadow-sm',
-      'dark:border-slate-700 dark:bg-slate-800', className,
-    )}>
+    <div
+      className={cn(
+        'rounded-xl border border-slate-200 bg-white p-4 shadow-sm',
+        'dark:border-slate-700 dark:bg-slate-800',
+        className,
+      )}
+    >
       {children}
     </div>
   )
@@ -109,8 +131,12 @@ const tones = {
 } as const
 
 export function Badge({
-  tone = 'neutral', children,
-}: { tone?: keyof typeof tones; children: ReactNode }) {
+  tone = 'neutral',
+  children,
+}: {
+  tone?: keyof typeof tones
+  children: ReactNode
+}) {
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', tones[tone])}>
       {children}
@@ -119,10 +145,17 @@ export function Badge({
 }
 
 export function Modal({
-  open, onClose, title, children, footer,
+  open,
+  onClose,
+  title,
+  children,
+  footer,
 }: {
-  open: boolean; onClose: () => void; title: string
-  children: ReactNode; footer?: ReactNode
+  open: boolean
+  onClose: () => void
+  title: string
+  children: ReactNode
+  footer?: ReactNode
 }) {
   if (!open) return null
   return (
@@ -162,7 +195,10 @@ export function ErrorNote({ error }: { error: unknown }) {
   if (!error) return null
   const message = error instanceof Error ? error.message : String(error)
   return (
-    <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-200">
+    <div
+      role="alert"
+      className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-200"
+    >
       {message}
     </div>
   )

@@ -57,11 +57,13 @@ export function AuthCallback() {
       if (done) return
       setProblem('Sesi tidak dapat dibuat dari tautan ini.')
       setDetail(
-        hasCode ? 'Kode otorisasi diterima tetapi penukaran sesi gagal — '
-          + 'biasanya karena proses masuk dimulai di peramban atau perangkat lain.'
-        : hasToken ? 'Token diterima tetapi tidak dapat disimpan.'
-        : 'Tautan tidak memuat kode maupun token. Pastikan URL callback '
-          + 'terdaftar pada daftar Redirect URLs di Supabase.',
+        hasCode
+          ? 'Kode otorisasi diterima tetapi penukaran sesi gagal — ' +
+              'biasanya karena proses masuk dimulai di peramban atau perangkat lain.'
+          : hasToken
+            ? 'Token diterima tetapi tidak dapat disimpan.'
+            : 'Tautan tidak memuat kode maupun token. Pastikan URL callback ' +
+              'terdaftar pada daftar Redirect URLs di Supabase.',
       )
     }, 8000)
 
@@ -86,7 +88,9 @@ export function AuthCallback() {
         <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{problem}</p>
         {detail && <p className="mt-2 text-xs text-slate-500">{detail}</p>}
         <Link to="/masuk">
-          <Button variant="secondary" className="mt-5 w-full">Kembali ke halaman masuk</Button>
+          <Button variant="secondary" className="mt-5 w-full">
+            Kembali ke halaman masuk
+          </Button>
         </Link>
       </Card>
     </div>

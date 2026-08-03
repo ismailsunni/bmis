@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react'
 import {
-  Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 import { Card, CardTitle } from '@/components/ui'
 import { formatIDR, formatIDRShort, monthLabel } from '@/lib/format'
@@ -16,8 +25,14 @@ import type { DashboardSummary, UserRole } from '@/types/db'
  * accessible alternative.
  */
 function Figure({
-  title, table, children,
-}: { title: string; table: React.ReactNode; children: React.ReactNode }) {
+  title,
+  table,
+  children,
+}: {
+  title: string
+  table: React.ReactNode
+  children: React.ReactNode
+}) {
   const [showTable, setShowTable] = useState(false)
   return (
     <Card>
@@ -39,18 +54,26 @@ function Figure({
   )
 }
 
-function SimpleTable({
-  head, rows,
-}: { head: string[]; rows: (string | number)[][] }) {
+function SimpleTable({ head, rows }: { head: string[]; rows: (string | number)[][] }) {
   return (
     <table className="tbl min-w-0">
       <thead>
-        <tr>{head.map((h, i) => <th key={h} className={i ? 'num' : ''}>{h}</th>)}</tr>
+        <tr>
+          {head.map((h, i) => (
+            <th key={h} className={i ? 'num' : ''}>
+              {h}
+            </th>
+          ))}
+        </tr>
       </thead>
       <tbody>
         {rows.map((r, i) => (
           <tr key={i}>
-            {r.map((c, j) => <td key={j} className={j ? 'num' : ''}>{c}</td>)}
+            {r.map((c, j) => (
+              <td key={j} className={j ? 'num' : ''}>
+                {c}
+              </td>
+            ))}
           </tr>
         ))}
       </tbody>
@@ -60,8 +83,12 @@ function SimpleTable({
 
 const tooltipStyle = (surface: string, ink: string) => ({
   contentStyle: {
-    background: surface, border: 'none', borderRadius: 8,
-    boxShadow: '0 4px 12px rgba(0,0,0,.15)', color: ink, fontSize: 12,
+    background: surface,
+    border: 'none',
+    borderRadius: 8,
+    boxShadow: '0 4px 12px rgba(0,0,0,.15)',
+    color: ink,
+    fontSize: 12,
   },
   itemStyle: { color: ink },
   labelStyle: { color: ink, fontWeight: 600 },
@@ -77,9 +104,11 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
   const { trendRows, trendKeys } = useMemo(() => {
     const totals = new Map<string, number>()
     data.trend.forEach((r) =>
-      totals.set(r.fund_type_name, (totals.get(r.fund_type_name) ?? 0) + Number(r.collected)))
+      totals.set(r.fund_type_name, (totals.get(r.fund_type_name) ?? 0) + Number(r.collected)),
+    )
     const keep = capSeries(
-      [...totals].map(([name, amount]) => ({ name, amount })), (r) => r.name,
+      [...totals].map(([name, amount]) => ({ name, amount })),
+      (r) => r.name,
     ).map((r) => r.name)
 
     const byMonth = new Map<string, Record<string, number | string>>()
@@ -90,30 +119,41 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
       byMonth.set(r.month, row)
     })
     return {
-      trendRows: [...byMonth.values()].sort((a, b) => String(a.month).localeCompare(String(b.month))),
+      trendRows: [...byMonth.values()].sort((a, b) =>
+        String(a.month).localeCompare(String(b.month)),
+      ),
       trendKeys: keep,
     }
   }, [data.trend])
 
   const composition = useMemo(
-    () => capSeries(data.composition.map((c) => ({ ...c, amount: Number(c.amount) })), (c) => c.name),
+    () =>
+      capSeries(
+        data.composition.map((c) => ({ ...c, amount: Number(c.amount) })),
+        (c) => c.name,
+      ),
     [data.composition],
   )
 
   const methods = useMemo(
-    () => capSeries(
-      data.payment_methods.map((m) => ({ ...m, amount: Number(m.amount) })),
-      (m) => paymentMethodLabels[m.method] ?? m.method,
-    ),
+    () =>
+      capSeries(
+        data.payment_methods.map((m) => ({ ...m, amount: Number(m.amount) })),
+        (m) => paymentMethodLabels[m.method] ?? m.method,
+      ),
     [data.payment_methods],
   )
 
   const asnaf = data.asnaf.map((a) => ({ name: a.name, amount: Number(a.amount) }))
   const programs = data.programs.map((p) => ({
-    name: p.name, collected: Number(p.collected), target: Number(p.target),
+    name: p.name,
+    collected: Number(p.collected),
+    target: Number(p.target),
   }))
   const cvd = data.collection_vs_distribution.map((r) => ({
-    month: r.month, collected: Number(r.collected), distributed: Number(r.distributed),
+    month: r.month,
+    collected: Number(r.collected),
+    distributed: Number(r.distributed),
   }))
 
   const axisProps = {
@@ -140,16 +180,29 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={trendRows} margin={{ left: 4, right: 4, top: 4 }}>
             <CartesianGrid vertical={false} stroke={t.grid} />
-            <XAxis dataKey="month" {...axisProps}
-                   tickFormatter={(v: string) => monthLabel(v.slice(0, 7))} />
+            <XAxis
+              dataKey="month"
+              {...axisProps}
+              tickFormatter={(v: string) => monthLabel(v.slice(0, 7))}
+            />
             <YAxis {...axisProps} width={64} tickFormatter={formatIDRShort} />
-            <Tooltip {...tip} formatter={(v) => formatIDR(Number(v))}
-                     labelFormatter={(v) => monthLabel(String(v).slice(0, 7))} />
+            <Tooltip
+              {...tip}
+              formatter={(v) => formatIDR(Number(v))}
+              labelFormatter={(v) => monthLabel(String(v).slice(0, 7))}
+            />
             <Legend wrapperStyle={{ fontSize: 12, color: t.axis }} />
             {trendKeys.map((key, i) => (
               // 2px surface gap between stacked segments keeps adjacent fills apart
-              <Bar key={key} dataKey={key} stackId="a" fill={t.series[i % t.series.length]}
-                   stroke={t.surface} strokeWidth={2} radius={i === trendKeys.length - 1 ? [4, 4, 0, 0] : 0} />
+              <Bar
+                key={key}
+                dataKey={key}
+                stackId="a"
+                fill={t.series[i % t.series.length]}
+                stroke={t.surface}
+                strokeWidth={2}
+                radius={i === trendKeys.length - 1 ? [4, 4, 0, 0] : 0}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -158,14 +211,24 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
       <Figure
         title="Komposisi dana periode ini"
         table={
-          <SimpleTable head={['Jenis dana', 'Jumlah']}
-                       rows={composition.map((c) => [c.name, formatIDR(c.amount)])} />
+          <SimpleTable
+            head={['Jenis dana', 'Jumlah']}
+            rows={composition.map((c) => [c.name, formatIDR(c.amount)])}
+          />
         }
       >
         <ResponsiveContainer width="100%" height={260}>
           <PieChart>
-            <Pie data={composition} dataKey="amount" nameKey="name"
-                 innerRadius={58} outerRadius={92} paddingAngle={2} stroke={t.surface} strokeWidth={2}>
+            <Pie
+              data={composition}
+              dataKey="amount"
+              nameKey="name"
+              innerRadius={58}
+              outerRadius={92}
+              paddingAngle={2}
+              stroke={t.surface}
+              strokeWidth={2}
+            >
               {composition.map((_, i) => (
                 <Cell key={i} fill={t.series[i % t.series.length]} />
               ))}
@@ -182,7 +245,11 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
           table={
             <SimpleTable
               head={['Bulan', 'Terhimpun', 'Tersalurkan']}
-              rows={cvd.map((r) => [monthLabel(r.month), formatIDR(r.collected), formatIDR(r.distributed)])}
+              rows={cvd.map((r) => [
+                monthLabel(r.month),
+                formatIDR(r.collected),
+                formatIDR(r.distributed),
+              ])}
             />
           }
         >
@@ -191,11 +258,19 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
               <CartesianGrid vertical={false} stroke={t.grid} />
               <XAxis dataKey="month" {...axisProps} tickFormatter={monthLabel} />
               <YAxis {...axisProps} width={64} tickFormatter={formatIDRShort} />
-              <Tooltip {...tip} formatter={(v) => formatIDR(Number(v))}
-                       labelFormatter={(v) => monthLabel(String(v))} />
+              <Tooltip
+                {...tip}
+                formatter={(v) => formatIDR(Number(v))}
+                labelFormatter={(v) => monthLabel(String(v))}
+              />
               <Legend wrapperStyle={{ fontSize: 12, color: t.axis }} />
               <Bar name="Terhimpun" dataKey="collected" fill={t.series[0]} radius={[4, 4, 0, 0]} />
-              <Bar name="Tersalurkan" dataKey="distributed" fill={t.series[1]} radius={[4, 4, 0, 0]} />
+              <Bar
+                name="Tersalurkan"
+                dataKey="distributed"
+                fill={t.series[1]}
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </Figure>
@@ -204,8 +279,10 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
       <Figure
         title="Penyaluran zakat per asnaf"
         table={
-          <SimpleTable head={['Asnaf', 'Jumlah']}
-                       rows={asnaf.map((a) => [a.name, formatIDR(a.amount)])} />
+          <SimpleTable
+            head={['Asnaf', 'Jumlah']}
+            rows={asnaf.map((a) => [a.name, formatIDR(a.amount)])}
+          />
         }
       >
         <ResponsiveContainer width="100%" height={280}>
@@ -215,7 +292,13 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
             <YAxis type="category" dataKey="name" {...axisProps} width={92} />
             <Tooltip {...tip} formatter={(v) => formatIDR(Number(v))} />
             {/* one series, so the title names it and no legend box is needed */}
-            <Bar dataKey="amount" name="Tersalurkan" fill={t.series[0]} radius={[0, 4, 4, 0]} barSize={14} />
+            <Bar
+              dataKey="amount"
+              name="Tersalurkan"
+              fill={t.series[0]}
+              radius={[0, 4, 4, 0]}
+              barSize={14}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Figure>
@@ -236,8 +319,20 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
             <YAxis type="category" dataKey="name" {...axisProps} width={110} />
             <Tooltip {...tip} formatter={(v) => formatIDR(Number(v))} />
             <Legend wrapperStyle={{ fontSize: 12, color: t.axis }} />
-            <Bar name="Terkumpul" dataKey="collected" fill={t.series[0]} radius={[0, 4, 4, 0]} barSize={12} />
-            <Bar name="Target" dataKey="target" fill={t.series[1]} radius={[0, 4, 4, 0]} barSize={12} />
+            <Bar
+              name="Terkumpul"
+              dataKey="collected"
+              fill={t.series[0]}
+              radius={[0, 4, 4, 0]}
+              barSize={12}
+            />
+            <Bar
+              name="Target"
+              dataKey="target"
+              fill={t.series[1]}
+              radius={[0, 4, 4, 0]}
+              barSize={12}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Figure>
@@ -246,16 +341,27 @@ export function Charts({ data, role }: { data: DashboardSummary; role: UserRole 
         <Figure
           title="Metode pembayaran"
           table={
-            <SimpleTable head={['Metode', 'Jumlah']}
-                         rows={methods.map((m) => [m.name, formatIDR(m.amount)])} />
+            <SimpleTable
+              head={['Metode', 'Jumlah']}
+              rows={methods.map((m) => [m.name, formatIDR(m.amount)])}
+            />
           }
         >
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={methods} dataKey="amount" nameKey="name"
-                   innerRadius={58} outerRadius={92} paddingAngle={2}
-                   stroke={t.surface} strokeWidth={2}>
-                {methods.map((_, i) => <Cell key={i} fill={t.series[i % t.series.length]} />)}
+              <Pie
+                data={methods}
+                dataKey="amount"
+                nameKey="name"
+                innerRadius={58}
+                outerRadius={92}
+                paddingAngle={2}
+                stroke={t.surface}
+                strokeWidth={2}
+              >
+                {methods.map((_, i) => (
+                  <Cell key={i} fill={t.series[i % t.series.length]} />
+                ))}
               </Pie>
               <Tooltip {...tip} formatter={(v) => formatIDR(Number(v))} />
               <Legend wrapperStyle={{ fontSize: 12, color: t.axis }} />

@@ -14,8 +14,7 @@ export function useDonationCodes() {
     queryKey: ['donation_codes'],
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('donation_codes_v').select('*').order('code')
+      const { data, error } = await supabase.from('donation_codes_v').select('*').order('code')
       if (error) throw new Error(error.message)
       return (data ?? []) as DonationCode[]
     },

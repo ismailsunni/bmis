@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { roleFromAccessToken } from './jwt'
 import type { UserRole } from '@/types/db'
 
 interface AuthState {
@@ -23,31 +24,6 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 
 /** Absolute session lifetime; PRD 7.1 requires logout after 12 idle hours. */
 const IDLE_LIMIT_MS = 12 * 60 * 60 * 1000
-
-/**
- * The role lives in the JWT claims, put there by the custom access token hook,
- * and that is what RLS reads through current_role().
- *
- * It is deliberately not taken from session.user.app_metadata: that field
- * mirrors auth.users.raw_app_meta_data, which the hook does not write. A user
- * whose role was set only in profiles would appear here as a viewer while the
- * database saw super_admin — the UI and RLS must read the same claim.
- */
-function roleFromAccessToken(token: string | undefined): UserRole | null {
-  if (!token) return null
-  try {
-    const payload = token.split('.')[1]
-    if (!payload) return null
-    const b64 = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-    const claims = JSON.parse(new TextDecoder().decode(bytes)) as {
-      app_metadata?: { user_role?: string }
-    }
-    return (claims.app_metadata?.user_role as UserRole) ?? null
-  } catch {
-    return null
-  }
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -76,17 +52,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     let alive = true
-    supabase.from('profiles').select('role').eq('id', session.user.id).single()
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
       .then(({ data }) => {
         if (alive && data) setProfileRole(data.role as UserRole)
       })
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [session, claimRole])
 
   useEffect(() => {
     if (!session) return
     let last = Date.now()
-    const touch = () => { last = Date.now() }
+    const touch = () => {
+      last = Date.now()
+    }
     const events = ['mousedown', 'keydown', 'touchstart', 'visibilitychange']
     events.forEach((e) => window.addEventListener(e, touch))
     const timer = window.setInterval(() => {
@@ -98,14 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session])
 
-  const value = useMemo<AuthState>(() => ({
-    session,
-    user: session?.user ?? null,
-    role: claimRole ?? profileRole ?? 'viewer',
-    roleClaimMissing: Boolean(session) && !claimRole,
-    loading,
-    signOut: async () => { await supabase.auth.signOut() },
-  }), [session, claimRole, profileRole, loading])
+  const value = useMemo<AuthState>(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      role: claimRole ?? profileRole ?? 'viewer',
+      roleClaimMissing: Boolean(session) && !claimRole,
+      loading,
+      signOut: async () => {
+        await supabase.auth.signOut()
+      },
+    }),
+    [session, claimRole, profileRole, loading],
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

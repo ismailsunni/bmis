@@ -14,8 +14,11 @@ interface Statement {
   total: number
   by_fund: { name: string; amount: number }[]
   donations: {
-    id: string; receipt_no: string; amount: number
-    donated_at: string; fund_type_name: string
+    id: string
+    receipt_no: string
+    amount: number
+    donated_at: string
+    fund_type_name: string
   }[]
 }
 
@@ -45,13 +48,14 @@ export function DonorDetailPage() {
 
   // "At risk" per PRD 8.3: a recurring donor silent for more than two periods.
   const lastDonation = data?.donations[0]?.donated_at
-  const atRisk = donor?.is_recurring && lastDonation &&
+  const atRisk =
+    donor?.is_recurring &&
+    lastDonation &&
     Date.now() - new Date(lastDonation).getTime() > 60 * 864e5
 
   const printStatement = () => {
     if (!data || !donor) return
-    const thisYear = data.donations.filter(
-      (d) => new Date(d.donated_at).getFullYear() === year)
+    const thisYear = data.donations.filter((d) => new Date(d.donated_at).getFullYear() === year)
     const total = thisYear.reduce((s, d) => s + Number(d.amount), 0)
     printBSZ(`
       <h1>${org.name ?? 'Baitul Maal'}</h1>
@@ -103,7 +107,9 @@ export function DonorDetailPage() {
             <div className="mt-3 flex flex-wrap gap-1">
               {donor.is_recurring && <Badge tone="info">Donatur tetap</Badge>}
               {atRisk && <Badge tone="warning">Berisiko berhenti</Badge>}
-              {donor.tags.map((t) => <Badge key={t}>{t}</Badge>)}
+              {donor.tags.map((t) => (
+                <Badge key={t}>{t}</Badge>
+              ))}
             </div>
           </Card>
 
@@ -131,8 +137,12 @@ export function DonorDetailPage() {
               <div className="table-wrap">
                 <table className="tbl">
                   <thead>
-                    <tr><th>Kwitansi</th><th>Tanggal</th><th>Jenis dana</th>
-                        <th className="num">Jumlah</th></tr>
+                    <tr>
+                      <th>Kwitansi</th>
+                      <th>Tanggal</th>
+                      <th>Jenis dana</th>
+                      <th className="num">Jumlah</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {data.donations.map((d) => (

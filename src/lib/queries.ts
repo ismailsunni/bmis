@@ -1,12 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import type {
-  Account, Beneficiary, DashboardSummary, DistributionRow, DonationRow,
-  Donor, FundBalanceRow, FundType, Profile, Program,
+  Account,
+  Beneficiary,
+  DashboardSummary,
+  DistributionRow,
+  DonationRow,
+  Donor,
+  FundBalanceRow,
+  FundType,
+  Profile,
+  Program,
 } from '@/types/db'
 
 /** Any PostgREST error becomes a plain Error carrying the database message. */
-const unwrap = <T,>({ data, error }: { data: T | null; error: { message: string } | null }): T => {
+const unwrap = <T>({ data, error }: { data: T | null; error: { message: string } | null }): T => {
   if (error) throw new Error(error.message)
   return data as T
 }
@@ -17,9 +25,10 @@ export function useFundTypes() {
   return useQuery({
     queryKey: ['fund_types'],
     staleTime: 30 * 60_000,
-    queryFn: async () => unwrap(
-      await supabase.from('fund_types').select('*').eq('is_active', true).order('sort_order'),
-    ) as FundType[],
+    queryFn: async () =>
+      unwrap(
+        await supabase.from('fund_types').select('*').eq('is_active', true).order('sort_order'),
+      ) as FundType[],
   })
 }
 
@@ -27,9 +36,8 @@ export function useAccounts() {
   return useQuery({
     queryKey: ['accounts'],
     staleTime: 10 * 60_000,
-    queryFn: async () => unwrap(
-      await supabase.from('accounts').select('*').order('name'),
-    ) as Account[],
+    queryFn: async () =>
+      unwrap(await supabase.from('accounts').select('*').order('name')) as Account[],
   })
 }
 
@@ -37,18 +45,16 @@ export function usePrograms() {
   return useQuery({
     queryKey: ['programs'],
     staleTime: 5 * 60_000,
-    queryFn: async () => unwrap(
-      await supabase.from('programs').select('*').order('name'),
-    ) as Program[],
+    queryFn: async () =>
+      unwrap(await supabase.from('programs').select('*').order('name')) as Program[],
   })
 }
 
 export function useProfiles() {
   return useQuery({
     queryKey: ['profiles'],
-    queryFn: async () => unwrap(
-      await supabase.from('profiles').select('*').order('full_name'),
-    ) as Profile[],
+    queryFn: async () =>
+      unwrap(await supabase.from('profiles').select('*').order('full_name')) as Profile[],
   })
 }
 
@@ -57,8 +63,10 @@ export function useSettings() {
     queryKey: ['settings'],
     staleTime: 30 * 60_000,
     queryFn: async () => {
-      const rows = unwrap(await supabase.from('settings').select('key, value')) as
-        { key: string; value: Record<string, unknown> }[]
+      const rows = unwrap(await supabase.from('settings').select('key, value')) as {
+        key: string
+        value: Record<string, unknown>
+      }[]
       return Object.fromEntries(rows.map((r) => [r.key, r.value]))
     },
   })
@@ -162,18 +170,20 @@ export function useDashboard(from: string, to: string) {
   return useQuery({
     queryKey: ['dashboard', from, to],
     staleTime: 60_000,
-    queryFn: async () => unwrap(
-      await supabase.rpc('rpc_dashboard_summary', { p_from: from, p_to: to }),
-    ) as unknown as DashboardSummary,
+    queryFn: async () =>
+      unwrap(
+        await supabase.rpc('rpc_dashboard_summary', { p_from: from, p_to: to }),
+      ) as unknown as DashboardSummary,
   })
 }
 
 export function useFundBalanceReport(from: string, to: string) {
   return useQuery({
     queryKey: ['fund_balance', from, to],
-    queryFn: async () => unwrap(
-      await supabase.rpc('rpc_fund_balance_report', { p_from: from, p_to: to }),
-    ) as unknown as FundBalanceRow[],
+    queryFn: async () =>
+      unwrap(
+        await supabase.rpc('rpc_fund_balance_report', { p_from: from, p_to: to }),
+      ) as unknown as FundBalanceRow[],
   })
 }
 
@@ -183,8 +193,9 @@ export function useRpc<TArgs extends Record<string, unknown>>(fn: string, invali
   return useMutation({
     mutationFn: async (args: TArgs) => unwrap(await supabase.rpc(fn, args)),
     onSuccess: () => {
-      [...invalidate, 'dashboard', 'fund_balance'].forEach((key) =>
-        qc.invalidateQueries({ queryKey: [key] }))
+      ;[...invalidate, 'dashboard', 'fund_balance'].forEach((key) =>
+        qc.invalidateQueries({ queryKey: [key] }),
+      )
     },
   })
 }

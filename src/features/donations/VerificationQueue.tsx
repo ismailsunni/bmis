@@ -4,7 +4,15 @@ import { useDonations, useRpc } from '@/lib/queries'
 import { signedUrl } from '@/lib/storage'
 import { PageHeader } from '@/components/AppShell'
 import {
-  Badge, Button, Card, EmptyState, ErrorNote, Field, Modal, Spinner, Textarea,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Field,
+  Modal,
+  Spinner,
+  Textarea,
 } from '@/components/ui'
 import { formatDate, formatIDR, timeAgo } from '@/lib/format'
 import { paymentMethodLabels } from '@/lib/labels'
@@ -26,12 +34,13 @@ export function VerificationQueue() {
 
   const rows = data?.rows ?? []
 
-  const toggle = (id: string) => setSelected((s) => {
-    const next = new Set(s)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    return next
-  })
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
 
   const verifyBatch = async () => {
     // Sequential on purpose: each verification re-checks separation of duties
@@ -48,19 +57,20 @@ export function VerificationQueue() {
       <PageHeader
         title="Antrean verifikasi"
         subtitle={`${rows.length} donasi menunggu`}
-        action={selected.size > 0 && (
-          <Button size="sm" onClick={verifyBatch} disabled={verify.isPending}>
-            Verifikasi {selected.size} terpilih
-          </Button>
-        )}
+        action={
+          selected.size > 0 && (
+            <Button size="sm" onClick={verifyBatch} disabled={verify.isPending}>
+              Verifikasi {selected.size} terpilih
+            </Button>
+          )
+        }
       />
 
       <ErrorNote error={error ?? verify.error ?? reject.error} />
       {isLoading && <Spinner />}
 
       {rows.length === 0 && !isLoading && (
-        <EmptyState title="Tidak ada yang menunggu verifikasi"
-                    hint="Semua entri sudah diproses." />
+        <EmptyState title="Tidak ada yang menunggu verifikasi" hint="Semua entri sudah diproses." />
       )}
 
       <div className="space-y-3">
@@ -71,7 +81,10 @@ export function VerificationQueue() {
             checked={selected.has(row.id)}
             onToggle={() => toggle(row.id)}
             onVerify={() => verify.mutate({ p_id: row.id })}
-            onReject={() => { setRejecting(row); setReason('') }}
+            onReject={() => {
+              setRejecting(row)
+              setReason('')
+            }}
             busy={verify.isPending}
           />
         ))}
@@ -83,7 +96,9 @@ export function VerificationQueue() {
         title={`Tolak ${rejecting?.receipt_no ?? ''}`}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setRejecting(null)}>Batal</Button>
+            <Button variant="secondary" onClick={() => setRejecting(null)}>
+              Batal
+            </Button>
             <Button
               variant="danger"
               disabled={!reason.trim() || reject.isPending}
@@ -97,8 +112,7 @@ export function VerificationQueue() {
           </>
         }
       >
-        <Field label="Alasan penolakan" required
-               hint="Alasan tercatat permanen di log audit">
+        <Field label="Alasan penolakan" required hint="Alasan tercatat permanen di log audit">
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
         </Field>
       </Modal>
@@ -107,18 +121,31 @@ export function VerificationQueue() {
 }
 
 function QueueItem({
-  row, checked, onToggle, onVerify, onReject, busy,
+  row,
+  checked,
+  onToggle,
+  onVerify,
+  onReject,
+  busy,
 }: {
-  row: DonationRow; checked: boolean; onToggle: () => void
-  onVerify: () => void; onReject: () => void; busy: boolean
+  row: DonationRow
+  checked: boolean
+  onToggle: () => void
+  onVerify: () => void
+  onReject: () => void
+  busy: boolean
 }) {
   const [proof, setProof] = useState<string | null>(null)
 
   useEffect(() => {
     // Signed URLs live 60 seconds, so they are fetched per view, not stored.
     let alive = true
-    signedUrl('donation-proofs', row.proof_url).then((url) => { if (alive) setProof(url) })
-    return () => { alive = false }
+    signedUrl('donation-proofs', row.proof_url).then((url) => {
+      if (alive) setProof(url)
+    })
+    return () => {
+      alive = false
+    }
   }, [row.proof_url])
 
   const stale = Date.now() - new Date(row.created_at).getTime() > 3 * 864e5
@@ -126,8 +153,13 @@ function QueueItem({
   return (
     <Card>
       <div className="flex flex-col gap-4 sm:flex-row">
-        <input type="checkbox" checked={checked} onChange={onToggle}
-               className="mt-1 h-4 w-4 shrink-0" aria-label={`Pilih ${row.receipt_no}`} />
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="mt-1 h-4 w-4 shrink-0"
+          aria-label={`Pilih ${row.receipt_no}`}
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -136,7 +168,10 @@ function QueueItem({
           </div>
           <p className="mt-1 text-lg font-semibold">{formatIDR(row.amount)}</p>
           <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <Row label="Donatur" value={row.is_anonymous ? 'Hamba Allah' : row.donor_name ?? '—'} />
+            <Row
+              label="Donatur"
+              value={row.is_anonymous ? 'Hamba Allah' : (row.donor_name ?? '—')}
+            />
             <Row label="Jenis dana" value={row.fund_type_name} />
             <Row label="Metode" value={paymentMethodLabels[row.payment_method]} />
             <Row label="Tanggal" value={formatDate(row.donated_at)} />
@@ -146,16 +181,23 @@ function QueueItem({
           {row.notes && <p className="mt-2 text-sm text-slate-500">{row.notes}</p>}
 
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={onVerify} disabled={busy}>Verifikasi</Button>
-            <Button size="sm" variant="secondary" onClick={onReject}>Tolak</Button>
+            <Button size="sm" onClick={onVerify} disabled={busy}>
+              Verifikasi
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onReject}>
+              Tolak
+            </Button>
           </div>
         </div>
 
         <div className="sm:w-56 sm:shrink-0">
           {proof ? (
             <a href={proof} target="_blank" rel="noopener noreferrer">
-              <img src={proof} alt={`Bukti untuk ${row.receipt_no}`}
-                   className="max-h-56 w-full rounded-lg border border-slate-200 object-cover dark:border-slate-600" />
+              <img
+                src={proof}
+                alt={`Bukti untuk ${row.receipt_no}`}
+                className="max-h-56 w-full rounded-lg border border-slate-200 object-cover dark:border-slate-600"
+              />
             </a>
           ) : (
             <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 dark:border-slate-600">

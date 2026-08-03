@@ -1,8 +1,20 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  BarChart3, Users, HandCoins, HeartHandshake, FolderKanban, Wallet,
-  FileSpreadsheet, ScrollText, UserCog, Settings, LogOut, Menu, X, CheckCircle2,
+  BarChart3,
+  Users,
+  HandCoins,
+  HeartHandshake,
+  FolderKanban,
+  Wallet,
+  FileSpreadsheet,
+  ScrollText,
+  UserCog,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  CheckCircle2,
 } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
@@ -46,12 +58,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           to={to}
           end={to === '/'}
           onClick={() => setOpen(false)}
-          className={({ isActive }) => cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-            isActive
-              ? 'bg-brand-700 text-white'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-          )}
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+              isActive
+                ? 'bg-brand-700 text-white'
+                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+            )
+          }
         >
           <Icon size={18} aria-hidden />
           {label}
@@ -74,11 +88,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </header>
 
-      <aside className={cn(
-        'no-print border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800',
-        'lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-r',
-        open ? 'block border-b' : 'hidden lg:block',
-      )}>
+      <aside
+        className={cn(
+          'no-print border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800',
+          'lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-r',
+          open ? 'block border-b' : 'hidden lg:block',
+        )}
+      >
         <div className="mb-4 hidden px-2 lg:block">
           <p className="text-lg font-bold text-brand-800 dark:text-brand-300">BMIS</p>
           <p className="text-xs text-slate-500">Sistem Informasi Baitul Maal</p>
@@ -102,14 +118,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Without the claim, RLS applies viewer to every query no matter what
             this UI renders, so say so rather than showing a half-working app. */}
         {roleClaimMissing && (
-          <div role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/25 dark:text-amber-100">
+          <div
+            role="alert"
+            className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/25 dark:text-amber-100"
+          >
             <p className="font-semibold">Peran tidak terbaca dari sesi</p>
             <p className="mt-0.5">
-              Token masuk tidak memuat <code>app_metadata.user_role</code>, sehingga basis
-              data memperlakukan Anda sebagai <strong>Relawan</strong> dan sebagian besar
-              data akan tampak kosong. Aktifkan <em>Custom Access Token hook</em> ke fungsi{' '}
-              <code>public.custom_access_token_hook</code> pada pengaturan Auth, lalu keluar
-              dan masuk kembali.
+              Token masuk tidak memuat <code>app_metadata.user_role</code>, sehingga basis data
+              memperlakukan Anda sebagai <strong>Relawan</strong> dan sebagian besar data akan
+              tampak kosong. Aktifkan <em>Custom Access Token hook</em> ke fungsi{' '}
+              <code>public.custom_access_token_hook</code> pada pengaturan Auth, lalu keluar dan
+              masuk kembali.
             </p>
           </div>
         )}
@@ -120,8 +139,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 export function PageHeader({
-  title, subtitle, action,
-}: { title: string; subtitle?: string; action?: ReactNode }) {
+  title,
+  subtitle,
+  action,
+}: {
+  title: string
+  subtitle?: string
+  action?: ReactNode
+}) {
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>

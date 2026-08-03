@@ -1,6 +1,13 @@
 import { useSearchParams } from 'react-router-dom'
-import { endOfMonth, endOfQuarter, format, startOfMonth, startOfQuarter,
-  startOfYear, subMonths } from 'date-fns'
+import {
+  endOfMonth,
+  endOfQuarter,
+  format,
+  startOfMonth,
+  startOfQuarter,
+  startOfYear,
+  subMonths,
+} from 'date-fns'
 import { Select, Input } from '@/components/ui'
 import { todayJakarta } from '@/lib/format'
 
@@ -17,8 +24,11 @@ const PRESETS: Record<string, () => [string, string]> = {
 }
 
 const LABELS: Record<string, string> = {
-  this_month: 'Bulan ini', last_month: 'Bulan lalu',
-  this_quarter: 'Kuartal ini', ytd: 'Tahun berjalan', custom: 'Kustom',
+  this_month: 'Bulan ini',
+  last_month: 'Bulan lalu',
+  this_quarter: 'Kuartal ini',
+  ytd: 'Tahun berjalan',
+  custom: 'Kustom',
 }
 
 /**
@@ -55,14 +65,28 @@ export function DateRangeFilter() {
           set({ rentang: next, dari: f, sampai: t })
         }}
       >
-        {Object.entries(LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        {Object.entries(LABELS).map(([k, v]) => (
+          <option key={k} value={k}>
+            {v}
+          </option>
+        ))}
       </Select>
       {preset === 'custom' && (
         <>
-          <Input type="date" className="w-auto" value={from} aria-label="Dari tanggal"
-                 onChange={(e) => set({ dari: e.target.value })} />
-          <Input type="date" className="w-auto" value={to} aria-label="Sampai tanggal"
-                 onChange={(e) => set({ sampai: e.target.value })} />
+          <Input
+            type="date"
+            className="w-auto"
+            value={from}
+            aria-label="Dari tanggal"
+            onChange={(e) => set({ dari: e.target.value })}
+          />
+          <Input
+            type="date"
+            className="w-auto"
+            value={to}
+            aria-label="Sampai tanggal"
+            onChange={(e) => set({ sampai: e.target.value })}
+          />
         </>
       )}
     </div>

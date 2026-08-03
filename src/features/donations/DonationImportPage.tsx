@@ -15,8 +15,11 @@ const TARGET_FIELDS = ['donated_at', 'amount', 'payment_ref', 'donor_name', 'not
 type TargetField = (typeof TARGET_FIELDS)[number]
 
 const FIELD_LABELS: Record<TargetField, string> = {
-  donated_at: 'Tanggal', amount: 'Jumlah', payment_ref: 'Referensi / No. transaksi',
-  donor_name: 'Nama pengirim', notes: 'Keterangan',
+  donated_at: 'Tanggal',
+  amount: 'Jumlah',
+  payment_ref: 'Referensi / No. transaksi',
+  donor_name: 'Nama pengirim',
+  notes: 'Keterangan',
 }
 
 interface Staged {
@@ -61,7 +64,8 @@ export function DonationImportPage() {
   const [error, setError] = useState<string | null>(null)
 
   const onFile = async (file: File) => {
-    setError(null); setStaged(null)
+    setError(null)
+    setStaged(null)
     try {
       const rows = await readSheet(file)
       setRaw(rows)
@@ -103,17 +107,26 @@ export function DonationImportPage() {
         code_name: match?.name ?? null,
         fund_type_id: match?.fund_type_id ?? null,
         program_id: match?.program_id ?? null,
-        error: !amount || amount <= 0 ? 'Jumlah tidak valid'
-          : Number.isNaN(date.getTime()) ? 'Tanggal tidak valid' : undefined,
+        error:
+          !amount || amount <= 0
+            ? 'Jumlah tidak valid'
+            : Number.isNaN(date.getTime())
+              ? 'Tanggal tidak valid'
+              : undefined,
       }
     })
 
     const refs = rows.map((r) => r.payment_ref).filter(Boolean) as string[]
     if (refs.length) {
-      const { data } = await supabase.from('donations')
-        .select('payment_ref').in('payment_ref', refs).neq('status', 'voided')
+      const { data } = await supabase
+        .from('donations')
+        .select('payment_ref')
+        .in('payment_ref', refs)
+        .neq('status', 'voided')
       const existing = new Set((data ?? []).map((d) => d.payment_ref))
-      rows.forEach((r) => { r.duplicate = !!r.payment_ref && existing.has(r.payment_ref) })
+      rows.forEach((r) => {
+        r.duplicate = !!r.payment_ref && existing.has(r.payment_ref)
+      })
     }
     setStaged(rows)
   }
@@ -134,8 +147,9 @@ export function DonationImportPage() {
         payment_ref: r.payment_ref,
         donated_at: r.donated_at,
         status: 'pending' as const,
-        notes: [r.donor_name, r.notes, r.code ? `kode ${r.code}` : null]
-          .filter(Boolean).join(' — ') || null,
+        notes:
+          [r.donor_name, r.notes, r.code ? `kode ${r.code}` : null].filter(Boolean).join(' — ') ||
+          null,
         created_by: user!.id,
       }))
       const { error } = await supabase.from('donations').insert(payload)
@@ -144,7 +158,9 @@ export function DonationImportPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['donations'] })
-      setStaged(null); setRaw([]); setColumns([])
+      setStaged(null)
+      setRaw([])
+      setColumns([])
     },
   })
 
@@ -158,8 +174,11 @@ export function DonationImportPage() {
       <div className="space-y-4">
         <Card>
           <Field label="Berkas CSV atau XLSX" hint="Baris pertama dianggap sebagai judul kolom">
-            <Input type="file" accept=".csv,.xlsx,.xls"
-                   onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+            <Input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+            />
           </Field>
           <ErrorNote error={error} />
         </Card>
@@ -169,32 +188,53 @@ export function DonationImportPage() {
             <h3 className="mb-3 text-sm font-semibold">Pemetaan kolom</h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {TARGET_FIELDS.map((field) => (
-                <Field key={field} label={FIELD_LABELS[field]}
-                       required={field === 'amount' || field === 'donated_at'}>
+                <Field
+                  key={field}
+                  label={FIELD_LABELS[field]}
+                  required={field === 'amount' || field === 'donated_at'}
+                >
                   <Select
                     value={mapping[field] ?? ''}
-                    onChange={(e) => setMapping((m) => ({ ...m, [field]: e.target.value || undefined }))}
+                    onChange={(e) =>
+                      setMapping((m) => ({ ...m, [field]: e.target.value || undefined }))
+                    }
                   >
                     <option value="">— tidak dipakai —</option>
-                    {columns.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {columns.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
                   </Select>
                 </Field>
               ))}
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <Field label="Jenis dana bila kode tidak dikenali" required
-                     hint="Dipakai hanya untuk baris tanpa kode yang cocok">
+              <Field
+                label="Jenis dana bila kode tidak dikenali"
+                required
+                hint="Dipakai hanya untuk baris tanpa kode yang cocok"
+              >
                 <Select value={fundTypeId} onChange={(e) => setFundTypeId(e.target.value)}>
                   <option value="">— pilih —</option>
-                  {fundTypes?.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {fundTypes?.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
                 </Select>
               </Field>
               <Field label="Rekening tujuan" required>
                 <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
                   <option value="">— pilih —</option>
-                  {accounts?.filter((a) => a.is_active)
-                    .map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {accounts
+                    ?.filter((a) => a.is_active)
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
                 </Select>
               </Field>
               <Field label="Metode">
@@ -206,7 +246,9 @@ export function DonationImportPage() {
               </Field>
             </div>
 
-            <Button className="mt-4" onClick={buildPreview}>Pratinjau {raw.length} baris</Button>
+            <Button className="mt-4" onClick={buildPreview}>
+              Pratinjau {raw.length} baris
+            </Button>
           </Card>
         )}
 
@@ -215,14 +257,14 @@ export function DonationImportPage() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap gap-2 text-sm">
                 <Badge tone="success">{importable.length} siap diimpor</Badge>
-                <Badge tone="info">
-                  {staged.filter((r) => r.code).length} terbaca dari kode
-                </Badge>
+                <Badge tone="info">{staged.filter((r) => r.code).length} terbaca dari kode</Badge>
                 <Badge tone="warning">{staged.filter((r) => r.duplicate).length} duplikat</Badge>
                 <Badge tone="danger">{staged.filter((r) => r.error).length} bermasalah</Badge>
               </div>
-              <Button disabled={importable.length === 0 || commit.isPending}
-                      onClick={() => commit.mutate()}>
+              <Button
+                disabled={importable.length === 0 || commit.isPending}
+                onClick={() => commit.mutate()}
+              >
                 {commit.isPending ? 'Mengimpor…' : `Impor ${importable.length} baris`}
               </Button>
             </div>
@@ -232,8 +274,14 @@ export function DonationImportPage() {
             <div className="table-wrap max-h-96 overflow-y-auto">
               <table className="tbl">
                 <thead>
-                  <tr><th>Tanggal</th><th className="num">Jumlah</th><th>Kode / tujuan</th>
-                      <th>Referensi</th><th>Pengirim</th><th>Status</th></tr>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th className="num">Jumlah</th>
+                    <th>Kode / tujuan</th>
+                    <th>Referensi</th>
+                    <th>Pengirim</th>
+                    <th>Status</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {staged.map((r, i) => (
@@ -241,17 +289,25 @@ export function DonationImportPage() {
                       <td>{r.donated_at ? r.donated_at.slice(0, 10) : '—'}</td>
                       <td className="num">{formatIDR(r.amount)}</td>
                       <td>
-                        {r.code
-                          ? <><span className="font-mono text-xs">{r.code}</span>
-                              <span className="ml-1">{r.code_name}</span></>
-                          : <span className="text-slate-400">sedekah umum</span>}
+                        {r.code ? (
+                          <>
+                            <span className="font-mono text-xs">{r.code}</span>
+                            <span className="ml-1">{r.code_name}</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-400">sedekah umum</span>
+                        )}
                       </td>
                       <td className="font-mono text-xs">{r.payment_ref ?? '—'}</td>
                       <td className="max-w-[200px] truncate">{r.donor_name ?? '—'}</td>
                       <td>
-                        {r.error ? <Badge tone="danger">{r.error}</Badge>
-                          : r.duplicate ? <Badge tone="warning">Sudah ada</Badge>
-                          : <Badge tone="success">Siap</Badge>}
+                        {r.error ? (
+                          <Badge tone="danger">{r.error}</Badge>
+                        ) : r.duplicate ? (
+                          <Badge tone="warning">Sudah ada</Badge>
+                        ) : (
+                          <Badge tone="success">Siap</Badge>
+                        )}
                       </td>
                     </tr>
                   ))}

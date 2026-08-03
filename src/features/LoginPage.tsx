@@ -10,17 +10,28 @@ type Mode = 'password' | 'magic'
  * BASE_URL already ends in a slash and carries the /bmis/ prefix on Pages, so
  * this stays correct both locally and when served from a subpath.
  */
-const callbackUrl = () =>
-  `${window.location.origin}${import.meta.env.BASE_URL}auth/callback`
+const callbackUrl = () => `${window.location.origin}${import.meta.env.BASE_URL}auth/callback`
 
 /** Google's mark, inlined so no request leaves the page to fetch it. */
 function GoogleMark() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden focusable="false">
-      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62Z" />
-      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.34A8.99 8.99 0 0 0 9 18Z" />
-      <path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.01-2.34Z" />
-      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59A8.99 8.99 0 0 0 .96 4.94l3.01 2.34C4.68 5.16 6.66 3.58 9 3.58Z" />
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.34A8.99 8.99 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.01-2.34Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59A8.99 8.99 0 0 0 .96 4.94l3.01 2.34C4.68 5.16 6.66 3.58 9 3.58Z"
+      />
     </svg>
   )
 }
@@ -48,8 +59,8 @@ export function LoginPage() {
     setError(
       code === 'signup_disabled' || text?.toLowerCase().includes('signups not allowed')
         ? 'Pendaftaran lewat Google sedang dimatikan di server, sehingga akun Anda ' +
-          'tidak dapat ditautkan. Hubungi pengurus.'
-        : text ?? 'Gagal masuk dengan penyedia tersebut',
+            'tidak dapat ditautkan. Hubungi pengurus.'
+        : (text ?? 'Gagal masuk dengan penyedia tersebut'),
     )
     window.history.replaceState(null, '', window.location.pathname)
   }, [])
@@ -109,14 +120,24 @@ export function LoginPage() {
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <Field label="Email" required>
-              <Input type="email" required autoComplete="email" value={email}
-                     onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </Field>
 
             {mode === 'password' && (
               <Field label="Kata sandi" required>
-                <Input type="password" required autoComplete="current-password"
-                       value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </Field>
             )}
 
@@ -132,15 +153,23 @@ export function LoginPage() {
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-600" />
             </div>
 
-            <Button type="button" variant="secondary" className="w-full"
-                    disabled={busy} onClick={signInWithGoogle}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={busy}
+              onClick={signInWithGoogle}
+            >
               <GoogleMark /> Masuk dengan Google
             </Button>
 
             <button
               type="button"
               className="w-full text-center text-sm text-brand-700 hover:underline dark:text-brand-400"
-              onClick={() => { setMode(mode === 'password' ? 'magic' : 'password'); setError(null) }}
+              onClick={() => {
+                setMode(mode === 'password' ? 'magic' : 'password')
+                setError(null)
+              }}
             >
               {mode === 'password' ? 'Masuk dengan tautan email' : 'Masuk dengan kata sandi'}
             </button>
@@ -148,8 +177,7 @@ export function LoginPage() {
         )}
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          Akun dibuat oleh pengurus. Pendaftaran mandiri tidak tersedia, termasuk
-          melalui Google.
+          Akun dibuat oleh pengurus. Pendaftaran mandiri tidak tersedia, termasuk melalui Google.
         </p>
       </Card>
     </div>

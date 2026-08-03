@@ -16,9 +16,9 @@ export function PendingApproval() {
           Akun belum diaktifkan
         </h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Anda berhasil masuk sebagai <strong className="break-all">{user?.email}</strong>,
-          namun akun ini belum diberi peran oleh pengurus. Silakan hubungi pengurus
-          Baitul Maal agar akses Anda diaktifkan.
+          Anda berhasil masuk sebagai <strong className="break-all">{user?.email}</strong>, namun
+          akun ini belum diberi peran oleh pengurus. Silakan hubungi pengurus Baitul Maal agar akses
+          Anda diaktifkan.
         </p>
         <Button variant="secondary" className="mt-5 w-full" onClick={signOut}>
           Keluar

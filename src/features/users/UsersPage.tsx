@@ -4,9 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useProfiles } from '@/lib/queries'
 import { PageHeader } from '@/components/AppShell'
-import {
-  Badge, Button, ErrorNote, Field, Input, Modal, Select, Spinner,
-} from '@/components/ui'
+import { Badge, Button, ErrorNote, Field, Input, Modal, Select, Spinner } from '@/components/ui'
 import { formatDateTime } from '@/lib/format'
 import { roleLabels } from '@/lib/labels'
 import type { UserRole } from '@/types/db'
@@ -49,8 +47,14 @@ export function UsersPage() {
       <div className="table-wrap">
         <table className="tbl">
           <thead>
-            <tr><th>Nama</th><th>Email</th><th>Peran</th><th>Status</th>
-                <th>Terakhir masuk</th><th /></tr>
+            <tr>
+              <th>Nama</th>
+              <th>Email</th>
+              <th>Peran</th>
+              <th>Status</th>
+              <th>Terakhir masuk</th>
+              <th />
+            </tr>
           </thead>
           <tbody>
             {profiles?.map((p) => (
@@ -61,12 +65,18 @@ export function UsersPage() {
                   <Select
                     className="h-9 w-auto"
                     value={p.role}
-                    onChange={(e) => update.mutate({
-                      id: p.id, patch: { role: e.target.value as UserRole },
-                    })}
+                    onChange={(e) =>
+                      update.mutate({
+                        id: p.id,
+                        patch: { role: e.target.value as UserRole },
+                      })
+                    }
                   >
-                    {Object.entries(roleLabels).map(([k, v]) =>
-                      <option key={k} value={k}>{v}</option>)}
+                    {Object.entries(roleLabels).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
                   </Select>
                 </td>
                 <td>
@@ -78,15 +88,24 @@ export function UsersPage() {
                   {p.last_login_at ? formatDateTime(p.last_login_at) : 'belum pernah'}
                 </td>
                 <td className="whitespace-nowrap">
-                  <Button size="sm" variant="ghost"
-                          onClick={() => update.mutate({
-                            id: p.id, patch: { is_active: !p.is_active },
-                          })}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      update.mutate({
+                        id: p.id,
+                        patch: { is_active: !p.is_active },
+                      })
+                    }
+                  >
                     {p.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                   </Button>
                   {p.email && (
-                    <Button size="sm" variant="ghost"
-                            onClick={() => resetPassword.mutate(p.email!)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => resetPassword.mutate(p.email!)}
+                    >
                       Reset sandi
                     </Button>
                   )}
@@ -126,17 +145,22 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profiles'] })
-      setEmail(''); setFullName('')
+      setEmail('')
+      setFullName('')
       onClose()
     },
   })
 
   return (
     <Modal
-      open={open} onClose={onClose} title="Undang pengguna"
+      open={open}
+      onClose={onClose}
+      title="Undang pengguna"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
           <Button disabled={!email || invite.isPending} onClick={() => invite.mutate()}>
             {invite.isPending ? 'Mengirim…' : 'Kirim undangan'}
           </Button>
@@ -152,7 +176,11 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
         </Field>
         <Field label="Peran" required>
           <Select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-            {Object.entries(roleLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {Object.entries(roleLabels).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
           </Select>
         </Field>
         <ErrorNote error={invite.error} />

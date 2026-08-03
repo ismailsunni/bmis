@@ -2,15 +2,15 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { id } from 'date-fns/locale'
 
 const idr = new Intl.NumberFormat('id-ID', {
-  style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
+  style: 'currency',
+  currency: 'IDR',
+  maximumFractionDigits: 0,
 })
 const plain = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 })
 
-export const formatIDR = (v: number | string | null | undefined) =>
-  idr.format(Number(v ?? 0))
+export const formatIDR = (v: number | string | null | undefined) => idr.format(Number(v ?? 0))
 
-export const formatNumber = (v: number | string | null | undefined) =>
-  plain.format(Number(v ?? 0))
+export const formatNumber = (v: number | string | null | undefined) => plain.format(Number(v ?? 0))
 
 /** Compact rupiah for chart axes: Rp 1,2 jt */
 export const formatIDRShort = (v: number) => {
@@ -57,5 +57,8 @@ export const monthLabel = (ym: string) => {
  */
 export const formatHijri = (v: string | Date = new Date()) =>
   new Intl.DateTimeFormat('id-ID-u-ca-islamic-umalqura', {
-    day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: TZ,
   }).format(new Date(v))

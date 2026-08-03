@@ -10,8 +10,16 @@ import { roleLabels } from '@/lib/labels'
 import type { AuditEntry, UserRole } from '@/types/db'
 
 const TABLES = [
-  'donations', 'distributions', 'donors', 'beneficiaries', 'programs',
-  'accounts', 'profiles', 'settings', 'period_locks', 'fund_types',
+  'donations',
+  'distributions',
+  'donors',
+  'beneficiaries',
+  'programs',
+  'accounts',
+  'profiles',
+  'settings',
+  'period_locks',
+  'fund_types',
 ]
 
 const actionTone = { INSERT: 'success', UPDATE: 'info', DELETE: 'danger' } as const
@@ -25,7 +33,8 @@ export function AuditLogPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['audit', filters, page],
     queryFn: async () => {
-      let q = supabase.from('audit_log')
+      let q = supabase
+        .from('audit_log')
         .select('*', { count: 'exact' })
         .order('id', { ascending: false })
         .range(page * 50, page * 50 + 49)
@@ -57,11 +66,19 @@ export function AuditLogPage() {
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={filters.table} onChange={(e) => set({ table: e.target.value })}>
           <option value="">Semua tabel</option>
-          {TABLES.map((t) => <option key={t} value={t}>{t}</option>)}
+          {TABLES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
         </Select>
         <Select value={filters.actor} onChange={(e) => set({ actor: e.target.value })}>
           <option value="">Semua pengguna</option>
-          {profiles?.map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
+          {profiles?.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.full_name || p.email}
+            </option>
+          ))}
         </Select>
         <Select value={filters.action} onChange={(e) => set({ action: e.target.value })}>
           <option value="">Semua aksi</option>
@@ -75,35 +92,46 @@ export function AuditLogPage() {
       <ErrorNote error={error} />
       {isLoading && <Spinner />}
 
-      {data && (data.rows.length === 0 ? (
-        <EmptyState title="Tidak ada catatan yang cocok" />
-      ) : (
-        <>
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr><th>Waktu</th><th>Pelaku</th><th>Peran</th><th>Tabel</th>
-                    <th>Aksi</th><th>Alasan</th></tr>
-              </thead>
-              <tbody>
-                {data.rows.map((r) => (
-                  <tr key={r.id} className="cursor-pointer" onClick={() => setDetail(r)}>
-                    <td className="whitespace-nowrap">{formatDateTime(r.created_at)}</td>
-                    <td>{nameOf(r.actor_id)}</td>
-                    <td className="text-xs text-slate-500">
-                      {r.actor_role ? roleLabels[r.actor_role as UserRole] ?? r.actor_role : '—'}
-                    </td>
-                    <td className="font-mono text-xs">{r.table_name}</td>
-                    <td><Badge tone={actionTone[r.action]}>{r.action}</Badge></td>
-                    <td className="max-w-[240px] truncate">{r.reason ?? '—'}</td>
+      {data &&
+        (data.rows.length === 0 ? (
+          <EmptyState title="Tidak ada catatan yang cocok" />
+        ) : (
+          <>
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Waktu</th>
+                    <th>Pelaku</th>
+                    <th>Peran</th>
+                    <th>Tabel</th>
+                    <th>Aksi</th>
+                    <th>Alasan</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination page={page} count={data.count} onChange={setPage} />
-        </>
-      ))}
+                </thead>
+                <tbody>
+                  {data.rows.map((r) => (
+                    <tr key={r.id} className="cursor-pointer" onClick={() => setDetail(r)}>
+                      <td className="whitespace-nowrap">{formatDateTime(r.created_at)}</td>
+                      <td>{nameOf(r.actor_id)}</td>
+                      <td className="text-xs text-slate-500">
+                        {r.actor_role
+                          ? (roleLabels[r.actor_role as UserRole] ?? r.actor_role)
+                          : '—'}
+                      </td>
+                      <td className="font-mono text-xs">{r.table_name}</td>
+                      <td>
+                        <Badge tone={actionTone[r.action]}>{r.action}</Badge>
+                      </td>
+                      <td className="max-w-[240px] truncate">{r.reason ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} count={data.count} onChange={setPage} />
+          </>
+        ))}
 
       {detail && <DiffView entry={detail} onClose={() => setDetail(null)} />}
     </>
@@ -114,8 +142,9 @@ export function AuditLogPage() {
 function DiffView({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
   const before = entry.old_value ?? {}
   const after = entry.new_value ?? {}
-  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])]
-    .filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]))
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(
+    (k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]),
+  )
 
   const show = (v: unknown) =>
     v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)
@@ -134,7 +163,13 @@ function DiffView({ entry, onClose }: { entry: AuditEntry; onClose: () => void }
         ) : (
           <div className="table-wrap">
             <table className="tbl">
-              <thead><tr><th>Kolom</th><th>Sebelum</th><th>Sesudah</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Kolom</th>
+                  <th>Sebelum</th>
+                  <th>Sesudah</th>
+                </tr>
+              </thead>
               <tbody>
                 {keys.map((k) => (
                   <tr key={k}>

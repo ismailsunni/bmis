@@ -1,7 +1,12 @@
 import type { UserRole } from '@/types/db'
 
 const RANK: Record<UserRole, number> = {
-  super_admin: 5, finance: 4, auditor: 3, amil: 2, viewer: 1, none: 0,
+  super_admin: 5,
+  finance: 4,
+  auditor: 3,
+  amil: 2,
+  viewer: 1,
+  none: 0,
 }
 
 /** Mirrors public.role_rank: an unknown role is no access, not viewer access. */

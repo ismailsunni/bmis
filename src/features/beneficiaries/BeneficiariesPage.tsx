@@ -8,15 +8,26 @@ import { useBeneficiaries, useSettings } from '@/lib/queries'
 import { PageHeader } from '@/components/AppShell'
 import { Pagination } from '@/components/Pagination'
 import {
-  Badge, Button, EmptyState, ErrorNote, Field, Input, Modal, Select, Spinner, Textarea,
+  Badge,
+  Button,
+  EmptyState,
+  ErrorNote,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Spinner,
+  Textarea,
 } from '@/components/ui'
 import { formatIDR, maskIDR, parseIDR } from '@/lib/format'
 import { asnafLabels, verificationStatusLabels } from '@/lib/labels'
 import type { Asnaf, Beneficiary, VerificationStatus } from '@/types/db'
 
 const statusTone: Record<VerificationStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
-  unverified: 'neutral', survey_scheduled: 'warning',
-  verified: 'success', rejected: 'danger',
+  unverified: 'neutral',
+  survey_scheduled: 'warning',
+  verified: 'success',
+  rejected: 'danger',
 }
 
 export function BeneficiariesPage() {
@@ -32,50 +43,66 @@ export function BeneficiariesPage() {
       <PageHeader
         title="Mustahik"
         subtitle="Zakat hanya boleh disalurkan kepada mustahik yang sudah terverifikasi"
-        action={can.manageBeneficiaries(role) && (
-          <Button size="sm" onClick={() => setFormOpen(true)}>
-            <Plus size={16} /> Daftarkan mustahik
-          </Button>
-        )}
+        action={
+          can.manageBeneficiaries(role) && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus size={16} /> Daftarkan mustahik
+            </Button>
+          )
+        }
       />
 
-      <Input className="mb-4 sm:max-w-sm" placeholder="Cari nama atau kode"
-             value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} />
+      <Input
+        className="mb-4 sm:max-w-sm"
+        placeholder="Cari nama atau kode"
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value)
+          setPage(0)
+        }}
+      />
 
       <ErrorNote error={error} />
       {isLoading && <Spinner />}
 
-      {data && (data.rows.length === 0 ? (
-        <EmptyState title="Belum ada mustahik terdaftar" />
-      ) : (
-        <>
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr><th>Kode</th><th>Nama</th><th>Asnaf</th><th>Wilayah</th>
-                    <th className="num">Jiwa</th><th>Status survei</th></tr>
-              </thead>
-              <tbody>
-                {data.rows.map((b) => (
-                  <tr key={b.id} className="cursor-pointer" onClick={() => setDetail(b)}>
-                    <td className="font-mono text-xs">{b.beneficiary_code}</td>
-                    <td className="font-medium">{b.full_name}</td>
-                    <td>{asnafLabels[b.asnaf]}</td>
-                    <td>{[b.village, b.district].filter(Boolean).join(', ') || '—'}</td>
-                    <td className="num">{b.family_size ?? '—'}</td>
-                    <td>
-                      <Badge tone={statusTone[b.verification_status]}>
-                        {verificationStatusLabels[b.verification_status]}
-                      </Badge>
-                    </td>
+      {data &&
+        (data.rows.length === 0 ? (
+          <EmptyState title="Belum ada mustahik terdaftar" />
+        ) : (
+          <>
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Kode</th>
+                    <th>Nama</th>
+                    <th>Asnaf</th>
+                    <th>Wilayah</th>
+                    <th className="num">Jiwa</th>
+                    <th>Status survei</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination page={page} count={data.count} onChange={setPage} />
-        </>
-      ))}
+                </thead>
+                <tbody>
+                  {data.rows.map((b) => (
+                    <tr key={b.id} className="cursor-pointer" onClick={() => setDetail(b)}>
+                      <td className="font-mono text-xs">{b.beneficiary_code}</td>
+                      <td className="font-medium">{b.full_name}</td>
+                      <td>{asnafLabels[b.asnaf]}</td>
+                      <td>{[b.village, b.district].filter(Boolean).join(', ') || '—'}</td>
+                      <td className="num">{b.family_size ?? '—'}</td>
+                      <td>
+                        <Badge tone={statusTone[b.verification_status]}>
+                          {verificationStatusLabels[b.verification_status]}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} count={data.count} onChange={setPage} />
+          </>
+        ))}
 
       <BeneficiaryForm open={formOpen} onClose={() => setFormOpen(false)} />
       <BeneficiaryDetail beneficiary={detail} onClose={() => setDetail(null)} />
@@ -87,9 +114,18 @@ function BeneficiaryForm({ open, onClose }: { open: boolean; onClose: () => void
   const { user } = useAuth()
   const qc = useQueryClient()
   const [form, setForm] = useState({
-    full_name: '', nik: '', asnaf: 'fakir' as Asnaf, phone: '', address: '',
-    rt_rw: '', village: '', district: '', city: '', family_size: '',
-    monthly_income: '', survey_notes: '',
+    full_name: '',
+    nik: '',
+    asnaf: 'fakir' as Asnaf,
+    phone: '',
+    address: '',
+    rt_rw: '',
+    village: '',
+    district: '',
+    city: '',
+    family_size: '',
+    monthly_income: '',
+    survey_notes: '',
   })
 
   const save = useMutation({
@@ -111,17 +147,24 @@ function BeneficiaryForm({ open, onClose }: { open: boolean; onClose: () => void
       })
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiaries'] }); onClose() },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['beneficiaries'] })
+      onClose()
+    },
   })
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
 
   return (
     <Modal
-      open={open} onClose={onClose} title="Daftarkan mustahik"
+      open={open}
+      onClose={onClose}
+      title="Daftarkan mustahik"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
           <Button disabled={!form.full_name || save.isPending} onClick={() => save.mutate()}>
             Simpan
           </Button>
@@ -135,23 +178,43 @@ function BeneficiaryForm({ open, onClose }: { open: boolean; onClose: () => void
         <div className="grid grid-cols-2 gap-3">
           <Field label="Asnaf" required hint="Menentukan dana zakat yang boleh diterima">
             <Select value={form.asnaf} onChange={(e) => set({ asnaf: e.target.value as Asnaf })}>
-              {Object.entries(asnafLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(asnafLabels).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="NIK">
-            <Input inputMode="numeric" maxLength={16} value={form.nik}
-                   onChange={(e) => set({ nik: e.target.value })} />
+            <Input
+              inputMode="numeric"
+              maxLength={16}
+              value={form.nik}
+              onChange={(e) => set({ nik: e.target.value })}
+            />
           </Field>
         </div>
         <Field label="Telepon">
-          <Input inputMode="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+          <Input
+            inputMode="tel"
+            value={form.phone}
+            onChange={(e) => set({ phone: e.target.value })}
+          />
         </Field>
         <Field label="Alamat">
-          <Textarea rows={2} value={form.address} onChange={(e) => set({ address: e.target.value })} />
+          <Textarea
+            rows={2}
+            value={form.address}
+            onChange={(e) => set({ address: e.target.value })}
+          />
         </Field>
         <div className="grid grid-cols-3 gap-3">
           <Field label="RT/RW">
-            <Input value={form.rt_rw} onChange={(e) => set({ rt_rw: e.target.value })} placeholder="003/005" />
+            <Input
+              value={form.rt_rw}
+              onChange={(e) => set({ rt_rw: e.target.value })}
+              placeholder="003/005"
+            />
           </Field>
           <Field label="Desa/Kelurahan">
             <Input value={form.village} onChange={(e) => set({ village: e.target.value })} />
@@ -162,22 +225,31 @@ function BeneficiaryForm({ open, onClose }: { open: boolean; onClose: () => void
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Jumlah tanggungan">
-            <Input inputMode="numeric" value={form.family_size}
-                   onChange={(e) => set({ family_size: e.target.value.replace(/\D/g, '') })} />
+            <Input
+              inputMode="numeric"
+              value={form.family_size}
+              onChange={(e) => set({ family_size: e.target.value.replace(/\D/g, '') })}
+            />
           </Field>
           <Field label="Penghasilan bulanan">
-            <Input inputMode="numeric" value={form.monthly_income}
-                   onChange={(e) => set({ monthly_income: maskIDR(e.target.value) })} />
+            <Input
+              inputMode="numeric"
+              value={form.monthly_income}
+              onChange={(e) => set({ monthly_income: maskIDR(e.target.value) })}
+            />
           </Field>
         </div>
         <Field label="Catatan survei">
-          <Textarea rows={2} value={form.survey_notes}
-                    onChange={(e) => set({ survey_notes: e.target.value })} />
+          <Textarea
+            rows={2}
+            value={form.survey_notes}
+            onChange={(e) => set({ survey_notes: e.target.value })}
+          />
         </Field>
         <ErrorNote error={save.error} />
         <p className="text-xs text-slate-500">
-          Status awal <strong>belum disurvei</strong>. Mustahik harus terverifikasi sebelum
-          dapat menerima dana zakat.
+          Status awal <strong>belum disurvei</strong>. Mustahik harus terverifikasi sebelum dapat
+          menerima dana zakat.
         </p>
       </div>
     </Modal>
@@ -186,12 +258,18 @@ function BeneficiaryForm({ open, onClose }: { open: boolean; onClose: () => void
 
 /** Assistance history plus the duplicate-aid warning required by PRD 8.4. */
 function BeneficiaryDetail({
-  beneficiary, onClose,
-}: { beneficiary: Beneficiary | null; onClose: () => void }) {
+  beneficiary,
+  onClose,
+}: {
+  beneficiary: Beneficiary | null
+  onClose: () => void
+}) {
   const qc = useQueryClient()
   const { role } = useAuth()
   const { data: settings } = useSettings()
-  const windowDays = Number((settings?.rules as { duplicate_aid_days?: number })?.duplicate_aid_days ?? 90)
+  const windowDays = Number(
+    (settings?.rules as { duplicate_aid_days?: number })?.duplicate_aid_days ?? 90,
+  )
 
   const { data: history } = useQuery({
     queryKey: ['beneficiary-history', beneficiary?.id],
@@ -199,12 +277,20 @@ function BeneficiaryDetail({
     queryFn: async () => {
       const { data } = await supabase
         .from('distributions_v')
-        .select('id, ref_no, amount, distributed_at, status, fund_type_name, program_name, program_id')
+        .select(
+          'id, ref_no, amount, distributed_at, status, fund_type_name, program_name, program_id',
+        )
         .eq('beneficiary_id', beneficiary!.id)
         .order('distributed_at', { ascending: false })
       return (data ?? []) as {
-        id: string; ref_no: string; amount: number; distributed_at: string
-        status: string; fund_type_name: string; program_name: string | null; program_id: string | null
+        id: string
+        ref_no: string
+        amount: number
+        distributed_at: string
+        status: string
+        fund_type_name: string
+        program_name: string | null
+        program_id: string | null
       }[]
     },
   })
@@ -217,7 +303,10 @@ function BeneficiaryDetail({
         .eq('id', beneficiary!.id)
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiaries'] }); onClose() },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['beneficiaries'] })
+      onClose()
+    },
   })
 
   if (!beneficiary) return null
@@ -230,17 +319,23 @@ function BeneficiaryDetail({
   )
 
   const nextStatus: Record<VerificationStatus, VerificationStatus | null> = {
-    unverified: 'survey_scheduled', survey_scheduled: 'verified',
-    verified: null, rejected: null,
+    unverified: 'survey_scheduled',
+    survey_scheduled: 'verified',
+    verified: null,
+    rejected: null,
   }
   const next = nextStatus[beneficiary.verification_status]
 
   return (
     <Modal
-      open onClose={onClose} title={beneficiary.full_name}
+      open
+      onClose={onClose}
+      title={beneficiary.full_name}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Tutup</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Tutup
+          </Button>
           {next && can.manageBeneficiaries(role) && (
             <Button disabled={advance.isPending} onClick={() => advance.mutate(next)}>
               Tandai {verificationStatusLabels[next].toLowerCase()}
@@ -265,9 +360,7 @@ function BeneficiaryDetail({
           </div>
         )}
 
-        {beneficiary.survey_notes && (
-          <p className="text-slate-500">{beneficiary.survey_notes}</p>
-        )}
+        {beneficiary.survey_notes && <p className="text-slate-500">{beneficiary.survey_notes}</p>}
 
         <div>
           <h4 className="mb-1 font-medium">Riwayat bantuan</h4>

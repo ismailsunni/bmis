@@ -7,7 +7,17 @@ import { can } from '@/auth/permissions'
 import { useFundTypes, usePrograms } from '@/lib/queries'
 import { PageHeader } from '@/components/AppShell'
 import {
-  Badge, Button, Card, EmptyState, ErrorNote, Field, Input, Modal, Select, Spinner, Textarea,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Spinner,
+  Textarea,
 } from '@/components/ui'
 import { formatDate, formatIDR, maskIDR, parseIDR } from '@/lib/format'
 import { programStatusLabels } from '@/lib/labels'
@@ -43,9 +53,13 @@ export function ProgramsPage() {
     <>
       <PageHeader
         title="Program"
-        action={can.managePrograms(role) && (
-          <Button size="sm" onClick={() => setOpen(true)}><Plus size={16} /> Program baru</Button>
-        )}
+        action={
+          can.managePrograms(role) && (
+            <Button size="sm" onClick={() => setOpen(true)}>
+              <Plus size={16} /> Program baru
+            </Button>
+          )
+        }
       />
 
       <ErrorNote error={error} />
@@ -55,10 +69,12 @@ export function ProgramsPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {programs?.map((p) => {
           const t = totals?.get(p.id) ?? { collected: 0, distributed: 0 }
-          const pct = p.target_amount > 0
-            ? Math.round((t.collected / p.target_amount) * 100) : null
-          const overdue = p.end_date && new Date(p.end_date) < new Date() &&
-            p.status === 'active' && (pct ?? 100) < 100
+          const pct = p.target_amount > 0 ? Math.round((t.collected / p.target_amount) * 100) : null
+          const overdue =
+            p.end_date &&
+            new Date(p.end_date) < new Date() &&
+            p.status === 'active' &&
+            (pct ?? 100) < 100
 
           return (
             <Card key={p.id}>
@@ -82,8 +98,10 @@ export function ProgramsPage() {
               {pct != null && (
                 <>
                   <div className="mb-1 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                    <div className="h-full rounded-full bg-brand-600"
-                         style={{ width: `${Math.min(pct, 100)}%` }} />
+                    <div
+                      className="h-full rounded-full bg-brand-600"
+                      style={{ width: `${Math.min(pct, 100)}%` }}
+                    />
                   </div>
                   <p className="mb-2 text-xs text-slate-500">
                     {pct}% dari target {formatIDR(p.target_amount)}
@@ -110,7 +128,8 @@ export function ProgramsPage() {
 
               {p.end_date && (
                 <p className={`mt-2 text-xs ${overdue ? 'text-amber-600' : 'text-slate-400'}`}>
-                  Berakhir {formatDate(p.end_date)}{overdue ? ' — target belum tercapai' : ''}
+                  Berakhir {formatDate(p.end_date)}
+                  {overdue ? ' — target belum tercapai' : ''}
                 </p>
               )}
             </Card>
@@ -128,13 +147,22 @@ function ProgramForm({ open, onClose }: { open: boolean; onClose: () => void }) 
   const qc = useQueryClient()
   const { data: fundTypes } = useFundTypes()
   const [form, setForm] = useState({
-    name: '', code: '', description: '', fund_type_id: '', target_amount: '',
-    start_date: '', end_date: '', status: 'active' as ProgramStatus,
+    name: '',
+    code: '',
+    description: '',
+    fund_type_id: '',
+    target_amount: '',
+    start_date: '',
+    end_date: '',
+    status: 'active' as ProgramStatus,
   })
 
   const save = useMutation({
     mutationFn: async () => {
-      const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      const slug = form.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
       if (form.code && !/^\d{3}$/.test(form.code)) {
         throw new Error('Kode transfer harus tepat 3 angka')
       }
@@ -152,17 +180,24 @@ function ProgramForm({ open, onClose }: { open: boolean; onClose: () => void }) 
       })
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['programs'] }); onClose() },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['programs'] })
+      onClose()
+    },
   })
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
 
   return (
     <Modal
-      open={open} onClose={onClose} title="Program baru"
+      open={open}
+      onClose={onClose}
+      title="Program baru"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
           <Button disabled={!form.name || save.isPending} onClick={() => save.mutate()}>
             Simpan
           </Button>
@@ -176,44 +211,71 @@ function ProgramForm({ open, onClose }: { open: boolean; onClose: () => void }) 
               <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
             </Field>
           </div>
-          <Field label="Kode transfer"
-                 hint="3 angka, disisipkan donatur di akhir nominal">
-            <Input inputMode="numeric" maxLength={3} placeholder="153" value={form.code}
-                   onChange={(e) => set({ code: e.target.value.replace(/\D/g, '') })} />
+          <Field label="Kode transfer" hint="3 angka, disisipkan donatur di akhir nominal">
+            <Input
+              inputMode="numeric"
+              maxLength={3}
+              placeholder="153"
+              value={form.code}
+              onChange={(e) => set({ code: e.target.value.replace(/\D/g, '') })}
+            />
           </Field>
         </div>
         <Field label="Deskripsi">
-          <Textarea rows={2} value={form.description}
-                    onChange={(e) => set({ description: e.target.value })} />
+          <Textarea
+            rows={2}
+            value={form.description}
+            onChange={(e) => set({ description: e.target.value })}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Jenis dana">
-            <Select value={form.fund_type_id}
-                    onChange={(e) => set({ fund_type_id: e.target.value })}>
+            <Select
+              value={form.fund_type_id}
+              onChange={(e) => set({ fund_type_id: e.target.value })}
+            >
               <option value="">— semua —</option>
-              {fundTypes?.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              {fundTypes?.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Target">
-            <Input inputMode="numeric" value={form.target_amount}
-                   onChange={(e) => set({ target_amount: maskIDR(e.target.value) })} />
+            <Input
+              inputMode="numeric"
+              value={form.target_amount}
+              onChange={(e) => set({ target_amount: maskIDR(e.target.value) })}
+            />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Mulai">
-            <Input type="date" value={form.start_date}
-                   onChange={(e) => set({ start_date: e.target.value })} />
+            <Input
+              type="date"
+              value={form.start_date}
+              onChange={(e) => set({ start_date: e.target.value })}
+            />
           </Field>
           <Field label="Berakhir">
-            <Input type="date" value={form.end_date}
-                   onChange={(e) => set({ end_date: e.target.value })} />
+            <Input
+              type="date"
+              value={form.end_date}
+              onChange={(e) => set({ end_date: e.target.value })}
+            />
           </Field>
         </div>
         <Field label="Status">
-          <Select value={form.status}
-                  onChange={(e) => set({ status: e.target.value as ProgramStatus })}>
-            {Object.entries(programStatusLabels).map(([k, v]) =>
-              <option key={k} value={k}>{v}</option>)}
+          <Select
+            value={form.status}
+            onChange={(e) => set({ status: e.target.value as ProgramStatus })}
+          >
+            {Object.entries(programStatusLabels).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
           </Select>
         </Field>
         <ErrorNote error={save.error} />

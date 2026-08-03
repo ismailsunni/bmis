@@ -69,10 +69,15 @@ describe('transfer codes', () => {
   })
 
   it('treats a round amount as uncoded, matching the general-sedekah rule', () => {
-    const codes = [{
-      code: '153', name: 'Sedekah Bantu Petani', kind: 'program' as const,
-      fund_type_id: 'ft-sedekah', program_id: 'p-petani',
-    }]
+    const codes = [
+      {
+        code: '153',
+        name: 'Sedekah Bantu Petani',
+        kind: 'program' as const,
+        fund_type_id: 'ft-sedekah',
+        program_id: 'p-petani',
+      },
+    ]
     expect(matchTransferCode(100_000, codes)).toBeNull()
     expect(matchTransferCode(100_153, codes)?.name).toBe('Sedekah Bantu Petani')
   })

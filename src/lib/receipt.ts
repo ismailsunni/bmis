@@ -1,7 +1,11 @@
 import { formatDate, formatHijri, formatIDR } from './format'
 import type { DonationRow } from '@/types/db'
 
-interface Org { name?: string; receipt_footer?: string; phone?: string }
+interface Org {
+  name?: string
+  receipt_footer?: string
+  phone?: string
+}
 
 /**
  * WhatsApp is where the amil already works, so the MVP "sends" a receipt by
@@ -12,14 +16,16 @@ export function receiptText(d: DonationRow, org: Org = {}) {
     `*${org.name ?? 'Baitul Maal'}*`,
     `Kwitansi: ${d.receipt_no}`,
     '',
-    `Donatur : ${d.is_anonymous ? 'Hamba Allah' : d.donor_name ?? '-'}`,
+    `Donatur : ${d.is_anonymous ? 'Hamba Allah' : (d.donor_name ?? '-')}`,
     `Jenis   : ${d.fund_type_name}`,
     d.program_name ? `Program : ${d.program_name}` : null,
     `Jumlah  : ${formatIDR(d.amount)}`,
     `Tanggal : ${formatDate(d.donated_at)} / ${formatHijri(d.donated_at)}`,
     '',
     org.receipt_footer ?? 'Semoga Allah membalas kebaikan Anda.',
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 export function whatsappLink(text: string, phone?: string | null) {

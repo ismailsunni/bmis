@@ -14,7 +14,8 @@ export async function uploadProof(bucket: Bucket, file: File) {
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `${uid}/${crypto.randomUUID()}.${ext}`
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: '3600', upsert: false,
+    cacheControl: '3600',
+    upsert: false,
   })
   if (error) throw new Error(error.message)
   return path
@@ -25,7 +26,8 @@ const SIGNED_URL_TTL_SECONDS = 60
 export async function signedUrl(bucket: Bucket, path: string | null) {
   if (!path) return null
   const { data, error } = await supabase.storage
-    .from(bucket).createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+    .from(bucket)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
   if (error) return null
   return data.signedUrl
 }

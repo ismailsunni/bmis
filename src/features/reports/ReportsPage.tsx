@@ -41,9 +41,12 @@ export function ReportsPage() {
       />
 
       <div className="mb-4 no-print">
-        <Select className="sm:max-w-xs" value={tab}
-                onChange={(e) => setTab(e.target.value as Tab)}>
-          {Object.entries(TABS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        <Select className="sm:max-w-xs" value={tab} onChange={(e) => setTab(e.target.value as Tab)}>
+          {Object.entries(TABS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
         </Select>
       </div>
 
@@ -82,14 +85,23 @@ function FundBalanceReport({ from, to }: { from: string; to: string }) {
       <ErrorNote error={error} />
       <CardTitle
         action={
-          <Button size="sm" variant="secondary" className="no-print"
-                  onClick={() => exportXLSX((data ?? []).map((r) => ({
-                    'Jenis dana': r.fund_type_name,
-                    'Saldo awal': Number(r.opening),
-                    Penerimaan: Number(r.collected),
-                    Penyaluran: Number(r.distributed),
-                    'Saldo akhir': Number(r.closing),
-                  })), `saldo-dana-${from}-${to}`)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="no-print"
+            onClick={() =>
+              exportXLSX(
+                (data ?? []).map((r) => ({
+                  'Jenis dana': r.fund_type_name,
+                  'Saldo awal': Number(r.opening),
+                  Penerimaan: Number(r.collected),
+                  Penyaluran: Number(r.distributed),
+                  'Saldo akhir': Number(r.closing),
+                })),
+                `saldo-dana-${from}-${to}`,
+              )
+            }
+          >
             <Download size={16} /> XLSX
           </Button>
         }
@@ -101,8 +113,10 @@ function FundBalanceReport({ from, to }: { from: string; to: string }) {
         <table className="tbl">
           <thead>
             <tr>
-              <th>Jenis dana</th><th className="num">Saldo awal</th>
-              <th className="num">Penerimaan</th><th className="num">Penyaluran</th>
+              <th>Jenis dana</th>
+              <th className="num">Saldo awal</th>
+              <th className="num">Penerimaan</th>
+              <th className="num">Penyaluran</th>
               <th className="num">Saldo akhir</th>
             </tr>
           </thead>
@@ -150,8 +164,11 @@ function CollectionReport({ from, to }: { from: string; to: string }) {
         .lte('donated_at', `${to}T23:59:59`)
       if (error) throw new Error(error.message)
       return (data ?? []) as {
-        amount: number; payment_method: PaymentMethod
-        fund_type_name: string; created_by_name: string | null; donated_at: string
+        amount: number
+        payment_method: PaymentMethod
+        fund_type_name: string
+        created_by_name: string | null
+        donated_at: string
       }[]
     },
   })
@@ -173,13 +190,21 @@ function CollectionReport({ from, to }: { from: string; to: string }) {
   return (
     <div className="space-y-4">
       <ErrorNote error={error} />
-      <Breakdown title="Menurut jenis dana" rows={group((r) => r.fund_type_name)}
-                 filename={`penghimpunan-jenis-dana-${from}`} />
-      <Breakdown title="Menurut metode pembayaran"
-                 rows={group((r) => paymentMethodLabels[r.payment_method])}
-                 filename={`penghimpunan-metode-${from}`} />
-      <Breakdown title="Menurut amil" rows={group((r) => r.created_by_name ?? '—')}
-                 filename={`penghimpunan-amil-${from}`} />
+      <Breakdown
+        title="Menurut jenis dana"
+        rows={group((r) => r.fund_type_name)}
+        filename={`penghimpunan-jenis-dana-${from}`}
+      />
+      <Breakdown
+        title="Menurut metode pembayaran"
+        rows={group((r) => paymentMethodLabels[r.payment_method])}
+        filename={`penghimpunan-metode-${from}`}
+      />
+      <Breakdown
+        title="Menurut amil"
+        rows={group((r) => r.created_by_name ?? '—')}
+        filename={`penghimpunan-amil-${from}`}
+      />
     </div>
   )
 }
@@ -196,8 +221,10 @@ function DistributionReport({ from, to }: { from: string; to: string }) {
         .lte('distributed_at', `${to}T23:59:59`)
       if (error) throw new Error(error.message)
       return (data ?? []) as {
-        amount: number; asnaf: Asnaf | null
-        fund_type_name: string; program_name: string | null
+        amount: number
+        asnaf: Asnaf | null
+        fund_type_name: string
+        program_name: string | null
       }[]
     },
   })
@@ -219,19 +246,29 @@ function DistributionReport({ from, to }: { from: string; to: string }) {
   return (
     <div className="space-y-4">
       <ErrorNote error={error} />
-      <Breakdown title="Menurut jenis dana" rows={group((r) => r.fund_type_name)}
-                 filename={`penyaluran-jenis-dana-${from}`} />
-      <Breakdown title="Menurut asnaf"
-                 rows={group((r) => (r.asnaf ? asnafLabels[r.asnaf] : 'Kolektif / program'))}
-                 filename={`penyaluran-asnaf-${from}`} />
-      <Breakdown title="Menurut program" rows={group((r) => r.program_name ?? 'Tanpa program')}
-                 filename={`penyaluran-program-${from}`} />
+      <Breakdown
+        title="Menurut jenis dana"
+        rows={group((r) => r.fund_type_name)}
+        filename={`penyaluran-jenis-dana-${from}`}
+      />
+      <Breakdown
+        title="Menurut asnaf"
+        rows={group((r) => (r.asnaf ? asnafLabels[r.asnaf] : 'Kolektif / program'))}
+        filename={`penyaluran-asnaf-${from}`}
+      />
+      <Breakdown
+        title="Menurut program"
+        rows={group((r) => r.program_name ?? 'Tanpa program')}
+        filename={`penyaluran-program-${from}`}
+      />
     </div>
   )
 }
 
 function Breakdown({
-  title, rows, filename,
+  title,
+  rows,
+  filename,
 }: {
   title: string
   rows: [string, { amount: number; count: number }][]
@@ -242,12 +279,22 @@ function Breakdown({
     <Card>
       <CardTitle
         action={
-          <Button size="sm" variant="secondary" className="no-print"
-                  onClick={() => exportXLSX(
-                    rows.map(([k, v]) => ({
-                      Kategori: k, Jumlah: v.amount, Transaksi: v.count,
-                      'Porsi (%)': total ? Math.round((v.amount / total) * 1000) / 10 : 0,
-                    })), filename)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="no-print"
+            onClick={() =>
+              exportXLSX(
+                rows.map(([k, v]) => ({
+                  Kategori: k,
+                  Jumlah: v.amount,
+                  Transaksi: v.count,
+                  'Porsi (%)': total ? Math.round((v.amount / total) * 1000) / 10 : 0,
+                })),
+                filename,
+              )
+            }
+          >
             <Download size={16} /> XLSX
           </Button>
         }
@@ -260,8 +307,12 @@ function Breakdown({
         <div className="table-wrap">
           <table className="tbl">
             <thead>
-              <tr><th>Kategori</th><th className="num">Transaksi</th>
-                  <th className="num">Jumlah</th><th className="num">Porsi</th></tr>
+              <tr>
+                <th>Kategori</th>
+                <th className="num">Transaksi</th>
+                <th className="num">Jumlah</th>
+                <th className="num">Porsi</th>
+              </tr>
             </thead>
             <tbody>
               {rows.map(([k, v]) => (

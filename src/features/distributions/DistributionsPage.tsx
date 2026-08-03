@@ -4,25 +4,31 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
-import {
-  useAccounts, useDistributions, useFundTypes, usePrograms, useRpc,
-} from '@/lib/queries'
+import { useAccounts, useDistributions, useFundTypes, usePrograms, useRpc } from '@/lib/queries'
 import { uploadProof } from '@/lib/storage'
 import { PageHeader } from '@/components/AppShell'
 import { Pagination } from '@/components/Pagination'
 import {
-  Badge, Button, EmptyState, ErrorNote, Field, Input, Modal, Select, Spinner, Textarea,
+  Badge,
+  Button,
+  EmptyState,
+  ErrorNote,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Spinner,
+  Textarea,
 } from '@/components/ui'
 import { formatDate, formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
-import {
-  asnafLabels, distributionStatusLabels, distributionTypeLabels,
-} from '@/lib/labels'
-import type {
-  Beneficiary, DistributionRow, DistributionStatus, DistributionType,
-} from '@/types/db'
+import { asnafLabels, distributionStatusLabels, distributionTypeLabels } from '@/lib/labels'
+import type { Beneficiary, DistributionRow, DistributionStatus, DistributionType } from '@/types/db'
 
 const statusTone: Record<DistributionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
-  requested: 'warning', approved: 'info' as 'neutral', disbursed: 'success', rejected: 'danger',
+  requested: 'warning',
+  approved: 'info' as 'neutral',
+  disbursed: 'success',
+  rejected: 'danger',
 }
 
 export function DistributionsPage() {
@@ -34,93 +40,117 @@ export function DistributionsPage() {
   const { data, isLoading, error } = useDistributions(status || undefined, page)
 
   const approve = useRpc<{ p_id: string }>('rpc_approve_distribution', ['distributions'])
-  const reject = useRpc<{ p_id: string; p_reason: string }>(
-    'rpc_reject_distribution', ['distributions'])
+  const reject = useRpc<{ p_id: string; p_reason: string }>('rpc_reject_distribution', [
+    'distributions',
+  ])
 
   return (
     <>
       <PageHeader
         title="Penyaluran"
         subtitle="Pengajuan → persetujuan → penyerahan, dengan pemeriksaan saldo per jenis dana"
-        action={can.requestDistribution(role) && (
-          <Button size="sm" onClick={() => setFormOpen(true)}>
-            <Plus size={16} /> Ajukan penyaluran
-          </Button>
-        )}
+        action={
+          can.requestDistribution(role) && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus size={16} /> Ajukan penyaluran
+            </Button>
+          )
+        }
       />
 
-      <Select className="mb-4 sm:max-w-xs" value={status}
-              onChange={(e) => { setStatus(e.target.value); setPage(0) }}>
+      <Select
+        className="mb-4 sm:max-w-xs"
+        value={status}
+        onChange={(e) => {
+          setStatus(e.target.value)
+          setPage(0)
+        }}
+      >
         <option value="">Semua status</option>
-        {Object.entries(distributionStatusLabels).map(([k, v]) =>
-          <option key={k} value={k}>{v}</option>)}
+        {Object.entries(distributionStatusLabels).map(([k, v]) => (
+          <option key={k} value={k}>
+            {v}
+          </option>
+        ))}
       </Select>
 
       <ErrorNote error={error ?? approve.error ?? reject.error} />
       {isLoading && <Spinner />}
 
-      {data && (data.rows.length === 0 ? (
-        <EmptyState title="Belum ada penyaluran" />
-      ) : (
-        <>
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>No. rujukan</th><th>Tanggal</th><th>Penerima</th><th>Jenis dana</th>
-                  <th className="num">Jumlah</th><th>Status</th><th />
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((r) => (
-                  <tr key={r.id}>
-                    <td className="font-mono text-xs">{r.ref_no}</td>
-                    <td className="whitespace-nowrap">{formatDate(r.distributed_at)}</td>
-                    <td>
-                      {r.beneficiary_name ?? r.program_name ?? '—'}
-                      {r.asnaf && <span className="ml-1 text-xs text-slate-500">
-                        ({asnafLabels[r.asnaf]})
-                      </span>}
-                    </td>
-                    <td>{r.fund_type_name}</td>
-                    <td className="num font-medium">{formatIDR(r.amount)}</td>
-                    <td>
-                      <Badge tone={statusTone[r.status]}>
-                        {distributionStatusLabels[r.status]}
-                      </Badge>
-                    </td>
-                    <td className="whitespace-nowrap">
-                      {r.status === 'requested' && can.approveDistribution(role) && (
-                        <>
-                          <Button size="sm" variant="ghost"
-                                  onClick={() => approve.mutate({ p_id: r.id })}>
-                            Setujui
-                          </Button>
-                          <Button
-                            size="sm" variant="ghost"
-                            onClick={() => {
-                              const reason = window.prompt('Alasan penolakan')
-                              if (reason?.trim()) reject.mutate({ p_id: r.id, p_reason: reason })
-                            }}
-                          >
-                            Tolak
-                          </Button>
-                        </>
-                      )}
-                      {r.status === 'approved' && can.requestDistribution(role) && (
-                        <Button size="sm" variant="ghost" onClick={() => setDisbursing(r)}>
-                          Serahkan
-                        </Button>
-                      )}
-                    </td>
+      {data &&
+        (data.rows.length === 0 ? (
+          <EmptyState title="Belum ada penyaluran" />
+        ) : (
+          <>
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>No. rujukan</th>
+                    <th>Tanggal</th>
+                    <th>Penerima</th>
+                    <th>Jenis dana</th>
+                    <th className="num">Jumlah</th>
+                    <th>Status</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination page={page} count={data.count} onChange={setPage} />
-        </>
-      ))}
+                </thead>
+                <tbody>
+                  {data.rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="font-mono text-xs">{r.ref_no}</td>
+                      <td className="whitespace-nowrap">{formatDate(r.distributed_at)}</td>
+                      <td>
+                        {r.beneficiary_name ?? r.program_name ?? '—'}
+                        {r.asnaf && (
+                          <span className="ml-1 text-xs text-slate-500">
+                            ({asnafLabels[r.asnaf]})
+                          </span>
+                        )}
+                      </td>
+                      <td>{r.fund_type_name}</td>
+                      <td className="num font-medium">{formatIDR(r.amount)}</td>
+                      <td>
+                        <Badge tone={statusTone[r.status]}>
+                          {distributionStatusLabels[r.status]}
+                        </Badge>
+                      </td>
+                      <td className="whitespace-nowrap">
+                        {r.status === 'requested' && can.approveDistribution(role) && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => approve.mutate({ p_id: r.id })}
+                            >
+                              Setujui
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const reason = window.prompt('Alasan penolakan')
+                                if (reason?.trim()) reject.mutate({ p_id: r.id, p_reason: reason })
+                              }}
+                            >
+                              Tolak
+                            </Button>
+                          </>
+                        )}
+                        {r.status === 'approved' && can.requestDistribution(role) && (
+                          <Button size="sm" variant="ghost" onClick={() => setDisbursing(r)}>
+                            Serahkan
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} count={data.count} onChange={setPage} />
+          </>
+        ))}
 
       <DistributionForm open={formOpen} onClose={() => setFormOpen(false)} />
       <DisburseDialog row={disbursing} onClose={() => setDisbursing(null)} />
@@ -152,7 +182,8 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
     queryKey: ['eligible-beneficiaries', fundTypeId],
     enabled: !!fundType,
     queryFn: async () => {
-      let q = supabase.from('beneficiaries')
+      let q = supabase
+        .from('beneficiaries')
         .select('id, full_name, beneficiary_code, asnaf')
         .eq('is_active', true)
         .order('full_name')
@@ -192,7 +223,9 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['distributions'] })
-      setAmount(''); setDescription(''); setBeneficiaryId('')
+      setAmount('')
+      setDescription('')
+      setBeneficiaryId('')
       onClose()
     },
   })
@@ -201,34 +234,56 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
 
   return (
     <Modal
-      open={open} onClose={onClose} title="Ajukan penyaluran"
+      open={open}
+      onClose={onClose}
+      title="Ajukan penyaluran"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
-          <Button disabled={save.isPending} onClick={() => save.mutate()}>Ajukan</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
+          <Button disabled={save.isPending} onClick={() => save.mutate()}>
+            Ajukan
+          </Button>
         </>
       }
     >
       <div className="space-y-3">
-        <Field label="Sumber dana" required
-               hint="Wakaf uang tidak tersedia: pokoknya wajib dipertahankan">
-          <Select value={fundTypeId} onChange={(e) => {
-            setFundTypeId(e.target.value); setBeneficiaryId('')
-          }}>
+        <Field
+          label="Sumber dana"
+          required
+          hint="Wakaf uang tidak tersedia: pokoknya wajib dipertahankan"
+        >
+          <Select
+            value={fundTypeId}
+            onChange={(e) => {
+              setFundTypeId(e.target.value)
+              setBeneficiaryId('')
+            }}
+          >
             <option value="">— pilih —</option>
-            {selectableFundTypes.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {selectableFundTypes.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
           </Select>
         </Field>
 
         <Field
           label="Mustahik"
           required={fundType?.is_zakat}
-          hint={fundType?.is_zakat
-            ? 'Hanya mustahik terverifikasi dengan asnaf yang berhak atas dana ini'
-            : 'Boleh dikosongkan untuk penyaluran kolektif melalui program'}
+          hint={
+            fundType?.is_zakat
+              ? 'Hanya mustahik terverifikasi dengan asnaf yang berhak atas dana ini'
+              : 'Boleh dikosongkan untuk penyaluran kolektif melalui program'
+          }
         >
-          <Select value={beneficiaryId} disabled={!fundTypeId}
-                  onChange={(e) => setBeneficiaryId(e.target.value)}>
+          <Select
+            value={beneficiaryId}
+            disabled={!fundTypeId}
+            onChange={(e) => setBeneficiaryId(e.target.value)}
+          >
             <option value="">— tanpa mustahik perorangan —</option>
             {beneficiaries?.map((b) => (
               <option key={b.id} value={b.id}>
@@ -241,21 +296,33 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
         <Field label="Program">
           <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
             <option value="">— tanpa program —</option>
-            {programs?.filter((p) => p.status === 'active')
-              .map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {programs
+              ?.filter((p) => p.status === 'active')
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
           </Select>
         </Field>
 
         <Field label="Jumlah" required>
-          <Input inputMode="numeric" value={amount} className="text-lg font-semibold"
-                 onChange={(e) => setAmount(maskIDR(e.target.value))} />
+          <Input
+            inputMode="numeric"
+            value={amount}
+            className="text-lg font-semibold"
+            onChange={(e) => setAmount(maskIDR(e.target.value))}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Bentuk" required>
             <Select value={type} onChange={(e) => setType(e.target.value as DistributionType)}>
-              {Object.entries(distributionTypeLabels).map(([k, v]) =>
-                <option key={k} value={k}>{v}</option>)}
+              {Object.entries(distributionTypeLabels).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Tanggal" required>
@@ -266,14 +333,18 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
         <Field label="Rekening sumber" required>
           <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
             <option value="">— pilih —</option>
-            {accounts?.filter((a) => a.is_active)
-              .map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {accounts
+              ?.filter((a) => a.is_active)
+              .map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
           </Select>
         </Field>
 
         <Field label="Keterangan">
-          <Textarea rows={2} value={description}
-                    onChange={(e) => setDescription(e.target.value)} />
+          <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
 
         <ErrorNote error={save.error} />
@@ -285,15 +356,15 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
   )
 }
 
-function DisburseDialog({
-  row, onClose,
-}: { row: DistributionRow | null; onClose: () => void }) {
+function DisburseDialog({ row, onClose }: { row: DistributionRow | null; onClose: () => void }) {
   const [proof, setProof] = useState<File | null>(null)
   const [signature, setSignature] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const disburse = useRpc<{ p_id: string; p_proof_url: string | null; p_signature_url: string | null }>(
-    'rpc_disburse_distribution', ['distributions'],
-  )
+  const disburse = useRpc<{
+    p_id: string
+    p_proof_url: string | null
+    p_signature_url: string | null
+  }>('rpc_disburse_distribution', ['distributions'])
 
   if (!row) return null
 
@@ -303,7 +374,9 @@ function DisburseDialog({
       const proofPath = proof ? await uploadProof('distribution-proofs', proof) : null
       const sigPath = signature ? await uploadProof('distribution-proofs', signature) : null
       await disburse.mutateAsync({
-        p_id: row.id, p_proof_url: proofPath, p_signature_url: sigPath,
+        p_id: row.id,
+        p_proof_url: proofPath,
+        p_signature_url: sigPath,
       })
       onClose()
     } catch (err) {
@@ -313,11 +386,17 @@ function DisburseDialog({
 
   return (
     <Modal
-      open onClose={onClose} title={`Serahkan ${row.ref_no}`}
+      open
+      onClose={onClose}
+      title={`Serahkan ${row.ref_no}`}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
-          <Button disabled={disburse.isPending} onClick={submit}>Tandai tersalurkan</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
+          <Button disabled={disburse.isPending} onClick={submit}>
+            Tandai tersalurkan
+          </Button>
         </>
       }
     >
@@ -326,12 +405,20 @@ function DisburseDialog({
           {row.beneficiary_name ?? row.program_name} — <strong>{formatIDR(row.amount)}</strong>
         </p>
         <Field label="Foto penyerahan" hint="Diambil saat penyerahan di lapangan">
-          <Input type="file" accept="image/*" capture="environment"
-                 onChange={(e) => setProof(e.target.files?.[0] ?? null)} />
+          <Input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => setProof(e.target.files?.[0] ?? null)}
+          />
         </Field>
         <Field label="Tanda tangan penerima">
-          <Input type="file" accept="image/*" capture="environment"
-                 onChange={(e) => setSignature(e.target.files?.[0] ?? null)} />
+          <Input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => setSignature(e.target.files?.[0] ?? null)}
+          />
         </Field>
         <ErrorNote error={error ?? disburse.error} />
       </div>

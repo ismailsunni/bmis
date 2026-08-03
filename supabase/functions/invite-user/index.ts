@@ -47,7 +47,10 @@ Deno.serve(async (req) => {
   if (!auth.user) return json({ error: 'Sesi tidak valid' }, 401)
 
   const { data: profile } = await caller
-    .from('profiles').select('role').eq('id', auth.user.id).single()
+    .from('profiles')
+    .select('role')
+    .eq('id', auth.user.id)
+    .single()
 
   if (profile?.role !== 'super_admin') {
     return json({ error: 'Hanya super admin yang dapat mengundang pengguna' }, 403)
@@ -74,7 +77,8 @@ Deno.serve(async (req) => {
   })
   // is_active is set explicitly: the signup trigger creates every profile
   // inactive, so an invitation is the act of admitting someone.
-  await admin.from('profiles')
+  await admin
+    .from('profiles')
     .update({ role, full_name: full_name ?? '', email, is_active: true })
     .eq('id', invited.user.id)
 

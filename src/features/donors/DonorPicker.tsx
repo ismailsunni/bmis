@@ -10,8 +10,12 @@ import type { Donor } from '@/types/db'
  * keeps a first-time donor from breaking the sub-45-second entry flow.
  */
 export function DonorPicker({
-  value, onChange,
-}: { value: string | null; onChange: (id: string | null) => void }) {
+  value,
+  onChange,
+}: {
+  value: string | null
+  onChange: (id: string | null) => void
+}) {
   const { user } = useAuth()
   const qc = useQueryClient()
   const [term, setTerm] = useState('')
@@ -51,7 +55,9 @@ export function DonorPicker({
         .from('donors')
         .select('id, donor_code, full_name, phone, city')
         .is('deleted_at', null)
-        .or(`full_name.ilike.%${debounced}%,phone.ilike.%${debounced}%,donor_code.ilike.%${debounced}%`)
+        .or(
+          `full_name.ilike.%${debounced}%,phone.ilike.%${debounced}%,donor_code.ilike.%${debounced}%`,
+        )
         .limit(8)
       return (data ?? []) as Pick<Donor, 'id' | 'donor_code' | 'full_name' | 'phone' | 'city'>[]
     },
@@ -89,10 +95,13 @@ export function DonorPicker({
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{selected.full_name}</p>
           <p className="text-xs text-slate-500">
-            {selected.donor_code}{selected.phone ? ` · ${selected.phone}` : ''}
+            {selected.donor_code}
+            {selected.phone ? ` · ${selected.phone}` : ''}
           </p>
         </div>
-        <Button size="sm" variant="ghost" onClick={() => onChange(null)}>Ganti</Button>
+        <Button size="sm" variant="ghost" onClick={() => onChange(null)}>
+          Ganti
+        </Button>
       </div>
     )
   }
@@ -102,7 +111,10 @@ export function DonorPicker({
       <Input
         value={term}
         placeholder="Cari nama, telepon, atau kode donatur"
-        onChange={(e) => { setTerm(e.target.value); setOpen(true) }}
+        onChange={(e) => {
+          setTerm(e.target.value)
+          setOpen(true)
+        }}
         onFocus={() => setOpen(true)}
         aria-autocomplete="list"
       />
@@ -113,11 +125,16 @@ export function DonorPicker({
               key={d.id}
               type="button"
               className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700"
-              onClick={() => { onChange(d.id); setOpen(false); setTerm('') }}
+              onClick={() => {
+                onChange(d.id)
+                setOpen(false)
+                setTerm('')
+              }}
             >
               <span className="font-medium">{d.full_name}</span>
               <span className="ml-2 text-xs text-slate-500">
-                {d.donor_code}{d.phone ? ` · ${d.phone}` : ''}
+                {d.donor_code}
+                {d.phone ? ` · ${d.phone}` : ''}
               </span>
             </button>
           ))}

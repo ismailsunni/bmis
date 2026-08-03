@@ -61,13 +61,18 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
     setProgramId(matched.program_id ?? '')
   }
   const matchApplied = matched
-    ? matched.fund_type_id === fundTypeId
-      && (matched.program_id ?? '') === programId
+    ? matched.fund_type_id === fundTypeId && (matched.program_id ?? '') === programId
     : false
 
   const reset = () => {
-    setDonorId(null); setAnonymous(false); setAmount(''); setPaymentRef('')
-    setInKind(''); setNotes(''); setProof(null); setProgramId('')
+    setDonorId(null)
+    setAnonymous(false)
+    setAmount('')
+    setPaymentRef('')
+    setInKind('')
+    setNotes('')
+    setProof(null)
+    setProgramId('')
     setDonatedAt(todayJakarta())
   }
 
@@ -121,7 +126,9 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
       title="Catat donasi"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? 'Menyimpan…' : 'Simpan'}
           </Button>
@@ -130,8 +137,12 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
     >
       <div className="space-y-3">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" className="h-4 w-4" checked={anonymous}
-                 onChange={(e) => setAnonymous(e.target.checked)} />
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+          />
           Donasi anonim (dicatat sebagai “Hamba Allah”)
         </label>
 
@@ -155,12 +166,15 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
           <div className="rounded-lg bg-brand-50 p-3 text-sm dark:bg-brand-900/20">
             <p>
               Kode <strong>{matched.code}</strong> pada nominal ini merujuk{' '}
-              <strong>{matched.name}</strong>
-              {' '}(donasi {formatIDR(baseAmountOf(parseIDR(amount)))} + kode).
+              <strong>{matched.name}</strong> (donasi {formatIDR(baseAmountOf(parseIDR(amount)))} +
+              kode).
             </p>
             {!matchApplied && (
-              <button type="button" onClick={applyMatch}
-                      className="mt-1 font-medium text-brand-700 hover:underline dark:text-brand-300">
+              <button
+                type="button"
+                onClick={applyMatch}
+                className="mt-1 font-medium text-brand-700 hover:underline dark:text-brand-300"
+              >
                 Terapkan
               </button>
             )}
@@ -184,7 +198,8 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
         >
           <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
             <option value="">— tanpa program —</option>
-            {programs?.filter((p) => p.status === 'active')
+            {programs
+              ?.filter((p) => p.status === 'active')
               .map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.code ? `${p.code} — ${p.name}` : p.name}
@@ -196,39 +211,61 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Metode" required>
             <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-              {Object.entries(paymentMethodLabels).map(([k, v]) =>
-                <option key={k} value={k}>{v}</option>)}
+              {Object.entries(paymentMethodLabels).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Tanggal donasi" required>
-            <Input type="date" value={donatedAt} max={todayJakarta()}
-                   onChange={(e) => setDonatedAt(e.target.value)} />
+            <Input
+              type="date"
+              value={donatedAt}
+              max={todayJakarta()}
+              onChange={(e) => setDonatedAt(e.target.value)}
+            />
           </Field>
         </div>
 
         <Field label="Rekening penerima" required>
           <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            {accounts?.filter((a) => a.is_active)
-              .map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {accounts
+              ?.filter((a) => a.is_active)
+              .map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
           </Select>
         </Field>
 
         {method !== 'cash' && method !== 'in_kind' && (
-          <Field label="Referensi pembayaran" hint="Nomor transaksi bank / QRIS — dipakai untuk deteksi duplikat">
+          <Field
+            label="Referensi pembayaran"
+            hint="Nomor transaksi bank / QRIS — dipakai untuk deteksi duplikat"
+          >
             <Input value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
           </Field>
         )}
 
         {method === 'in_kind' && (
           <Field label="Deskripsi barang" required>
-            <Input value={inKind} onChange={(e) => setInKind(e.target.value)}
-                   placeholder="mis. 10 karung beras 25 kg" />
+            <Input
+              value={inKind}
+              onChange={(e) => setInKind(e.target.value)}
+              placeholder="mis. 10 karung beras 25 kg"
+            />
           </Field>
         )}
 
         <Field label="Bukti transfer / foto" hint="Diambil langsung dari kamera atau galeri">
-          <Input type="file" accept="image/*,application/pdf" capture="environment"
-                 onChange={(e) => setProof(e.target.files?.[0] ?? null)} />
+          <Input
+            type="file"
+            accept="image/*,application/pdf"
+            capture="environment"
+            onChange={(e) => setProof(e.target.files?.[0] ?? null)}
+          />
         </Field>
 
         <Field label="Catatan">
@@ -237,8 +274,8 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
 
         <ErrorNote error={save.error} />
         <p className="text-xs text-slate-500">
-          Donasi tersimpan berstatus <strong>menunggu verifikasi</strong> dan belum
-          dihitung dalam saldo sampai diverifikasi bendahara.
+          Donasi tersimpan berstatus <strong>menunggu verifikasi</strong> dan belum dihitung dalam
+          saldo sampai diverifikasi bendahara.
         </p>
       </div>
     </Modal>

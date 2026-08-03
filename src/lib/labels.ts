@@ -1,6 +1,13 @@
 import type {
-  Asnaf, DistributionStatus, DistributionType, DonationStatus,
-  DonorType, PaymentMethod, ProgramStatus, UserRole, VerificationStatus,
+  Asnaf,
+  DistributionStatus,
+  DistributionType,
+  DonationStatus,
+  DonorType,
+  PaymentMethod,
+  ProgramStatus,
+  UserRole,
+  VerificationStatus,
 } from '@/types/db'
 
 export const roleLabels: Record<UserRole, string> = {
@@ -13,39 +20,62 @@ export const roleLabels: Record<UserRole, string> = {
 }
 
 export const donationStatusLabels: Record<DonationStatus, string> = {
-  draft: 'Draf', pending: 'Menunggu verifikasi', verified: 'Terverifikasi',
-  rejected: 'Ditolak', voided: 'Dibatalkan',
+  draft: 'Draf',
+  pending: 'Menunggu verifikasi',
+  verified: 'Terverifikasi',
+  rejected: 'Ditolak',
+  voided: 'Dibatalkan',
 }
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {
-  cash: 'Tunai', transfer: 'Transfer', qris: 'QRIS',
-  ewallet: 'E-Wallet', in_kind: 'Barang',
+  cash: 'Tunai',
+  transfer: 'Transfer',
+  qris: 'QRIS',
+  ewallet: 'E-Wallet',
+  in_kind: 'Barang',
 }
 
 export const donorTypeLabels: Record<DonorType, string> = {
-  individual: 'Perorangan', organization: 'Lembaga', anonymous: 'Anonim',
+  individual: 'Perorangan',
+  organization: 'Lembaga',
+  anonymous: 'Anonim',
 }
 
 export const asnafLabels: Record<Asnaf, string> = {
-  fakir: 'Fakir', miskin: 'Miskin', amil: 'Amil', muallaf: 'Muallaf',
-  riqab: 'Riqab', gharimin: 'Gharimin', fisabilillah: 'Fisabilillah',
+  fakir: 'Fakir',
+  miskin: 'Miskin',
+  amil: 'Amil',
+  muallaf: 'Muallaf',
+  riqab: 'Riqab',
+  gharimin: 'Gharimin',
+  fisabilillah: 'Fisabilillah',
   ibnu_sabil: 'Ibnu Sabil',
 }
 
 export const verificationStatusLabels: Record<VerificationStatus, string> = {
-  unverified: 'Belum disurvei', survey_scheduled: 'Survei dijadwalkan',
-  verified: 'Terverifikasi', rejected: 'Ditolak',
+  unverified: 'Belum disurvei',
+  survey_scheduled: 'Survei dijadwalkan',
+  verified: 'Terverifikasi',
+  rejected: 'Ditolak',
 }
 
 export const distributionStatusLabels: Record<DistributionStatus, string> = {
-  requested: 'Diajukan', approved: 'Disetujui', disbursed: 'Tersalurkan',
+  requested: 'Diajukan',
+  approved: 'Disetujui',
+  disbursed: 'Tersalurkan',
   rejected: 'Ditolak',
 }
 
 export const distributionTypeLabels: Record<DistributionType, string> = {
-  cash: 'Tunai', goods: 'Barang', service: 'Layanan', scholarship: 'Beasiswa',
+  cash: 'Tunai',
+  goods: 'Barang',
+  service: 'Layanan',
+  scholarship: 'Beasiswa',
 }
 
 export const programStatusLabels: Record<ProgramStatus, string> = {
-  draft: 'Draf', active: 'Aktif', completed: 'Selesai', cancelled: 'Dibatalkan',
+  draft: 'Draf',
+  active: 'Aktif',
+  completed: 'Selesai',
+  cancelled: 'Dibatalkan',
 }

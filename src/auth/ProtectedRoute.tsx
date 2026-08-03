@@ -9,17 +9,17 @@ import type { UserRole } from '@/types/db'
  * show them empty tables anyway. The database refuses the data regardless.
  */
 export function ProtectedRoute({
-  children, allow,
-}: { children: ReactNode; allow?: (role: UserRole) => boolean }) {
+  children,
+  allow,
+}: {
+  children: ReactNode
+  allow?: (role: UserRole) => boolean
+}) {
   const { session, role, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
-        Memuat…
-      </div>
-    )
+    return <div className="flex h-screen items-center justify-center text-slate-500">Memuat…</div>
   }
   if (!session) return <Navigate to="/masuk" state={{ from: location }} replace />
   // Not a redirect: there is no page this account may see, so sending it to the

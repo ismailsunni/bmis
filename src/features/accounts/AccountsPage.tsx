@@ -7,13 +7,24 @@ import { can } from '@/auth/permissions'
 import { useAccounts, useRpc } from '@/lib/queries'
 import { PageHeader } from '@/components/AppShell'
 import {
-  Badge, Button, Card, CardTitle, ErrorNote, Field, Input, Modal, Select, Spinner,
+  Badge,
+  Button,
+  Card,
+  CardTitle,
+  ErrorNote,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Spinner,
 } from '@/components/ui'
 import { formatDate, formatIDR, maskIDR, parseIDR } from '@/lib/format'
 import type { AccountType } from '@/types/db'
 
 const accountTypeLabels: Record<AccountType, string> = {
-  cash: 'Kas tunai', bank: 'Rekening bank', ewallet: 'Dompet digital',
+  cash: 'Kas tunai',
+  bank: 'Rekening bank',
+  ewallet: 'Dompet digital',
 }
 
 export function AccountsPage() {
@@ -25,8 +36,11 @@ export function AccountsPage() {
   const { data: locks } = useQuery({
     queryKey: ['period_locks'],
     queryFn: async () => {
-      const { data } = await supabase.from('period_locks')
-        .select('*').order('period', { ascending: false }).limit(12)
+      const { data } = await supabase
+        .from('period_locks')
+        .select('*')
+        .order('period', { ascending: false })
+        .limit(12)
       return (data ?? []) as { period: string; locked_at: string; note: string | null }[]
     },
   })
@@ -70,7 +84,8 @@ export function AccountsPage() {
                 {!a.is_active && <Badge tone="neutral">Nonaktif</Badge>}
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                Saldo awal <span className="tabular-nums font-medium text-slate-700 dark:text-slate-200">
+                Saldo awal{' '}
+                <span className="tabular-nums font-medium text-slate-700 dark:text-slate-200">
                   {formatIDR(a.opening_balance)}
                 </span>
               </p>
@@ -108,8 +123,11 @@ function AccountForm({ open, onClose }: { open: boolean; onClose: () => void }) 
   const { user } = useAuth()
   const qc = useQueryClient()
   const [form, setForm] = useState({
-    name: '', type: 'bank' as AccountType, bank_name: '',
-    account_number: '', opening_balance: '',
+    name: '',
+    type: 'bank' as AccountType,
+    bank_name: '',
+    account_number: '',
+    opening_balance: '',
   })
 
   const save = useMutation({
@@ -124,17 +142,24 @@ function AccountForm({ open, onClose }: { open: boolean; onClose: () => void }) 
       })
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['accounts'] }); onClose() },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      onClose()
+    },
   })
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
 
   return (
     <Modal
-      open={open} onClose={onClose} title="Rekening baru"
+      open={open}
+      onClose={onClose}
+      title="Rekening baru"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
           <Button disabled={!form.name || save.isPending} onClick={() => save.mutate()}>
             Simpan
           </Button>
@@ -143,13 +168,19 @@ function AccountForm({ open, onClose }: { open: boolean; onClose: () => void }) 
     >
       <div className="space-y-3">
         <Field label="Nama" required>
-          <Input value={form.name} onChange={(e) => set({ name: e.target.value })}
-                 placeholder="mis. BSI Zakat" />
+          <Input
+            value={form.name}
+            onChange={(e) => set({ name: e.target.value })}
+            placeholder="mis. BSI Zakat"
+          />
         </Field>
         <Field label="Jenis" required>
           <Select value={form.type} onChange={(e) => set({ type: e.target.value as AccountType })}>
-            {Object.entries(accountTypeLabels).map(([k, v]) =>
-              <option key={k} value={k}>{v}</option>)}
+            {Object.entries(accountTypeLabels).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
           </Select>
         </Field>
         {form.type !== 'cash' && (
@@ -158,14 +189,19 @@ function AccountForm({ open, onClose }: { open: boolean; onClose: () => void }) 
               <Input value={form.bank_name} onChange={(e) => set({ bank_name: e.target.value })} />
             </Field>
             <Field label="Nomor rekening">
-              <Input value={form.account_number}
-                     onChange={(e) => set({ account_number: e.target.value })} />
+              <Input
+                value={form.account_number}
+                onChange={(e) => set({ account_number: e.target.value })}
+              />
             </Field>
           </div>
         )}
         <Field label="Saldo awal">
-          <Input inputMode="numeric" value={form.opening_balance}
-                 onChange={(e) => set({ opening_balance: maskIDR(e.target.value) })} />
+          <Input
+            inputMode="numeric"
+            value={form.opening_balance}
+            onChange={(e) => set({ opening_balance: maskIDR(e.target.value) })}
+          />
         </Field>
         <ErrorNote error={save.error} />
       </div>
@@ -176,15 +212,20 @@ function AccountForm({ open, onClose }: { open: boolean; onClose: () => void }) 
 function LockPeriodDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7))
   const [note, setNote] = useState('')
-  const lock = useRpc<{ p_period: string; p_note: string | null }>(
-    'rpc_lock_period', ['period_locks'])
+  const lock = useRpc<{ p_period: string; p_note: string | null }>('rpc_lock_period', [
+    'period_locks',
+  ])
 
   return (
     <Modal
-      open={open} onClose={onClose} title="Tutup periode"
+      open={open}
+      onClose={onClose}
+      title="Tutup periode"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
           <Button
             disabled={lock.isPending}
             onClick={async () => {
@@ -199,15 +240,18 @@ function LockPeriodDialog({ open, onClose }: { open: boolean; onClose: () => voi
     >
       <div className="space-y-3">
         <p className="text-sm text-slate-500">
-          Setelah periode dikunci, donasi dan penyaluran dengan tanggal dalam periode
-          tersebut tidak dapat ditambah atau diubah, kecuali oleh ketua.
+          Setelah periode dikunci, donasi dan penyaluran dengan tanggal dalam periode tersebut tidak
+          dapat ditambah atau diubah, kecuali oleh ketua.
         </p>
         <Field label="Periode" required>
           <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
         </Field>
         <Field label="Catatan">
-          <Input value={note} onChange={(e) => setNote(e.target.value)}
-                 placeholder="mis. tutup buku Agustus" />
+          <Input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="mis. tutup buku Agustus"
+          />
         </Field>
         <ErrorNote error={lock.error} />
       </div>

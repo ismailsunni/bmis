@@ -7,8 +7,7 @@ export type DonorType = 'individual' | 'organization' | 'anonymous'
 export type PaymentMethod = 'cash' | 'transfer' | 'qris' | 'ewallet' | 'in_kind'
 export type DonationStatus = 'draft' | 'pending' | 'verified' | 'rejected' | 'voided'
 export type Asnaf =
-  | 'fakir' | 'miskin' | 'amil' | 'muallaf'
-  | 'riqab' | 'gharimin' | 'fisabilillah' | 'ibnu_sabil'
+  'fakir' | 'miskin' | 'amil' | 'muallaf' | 'riqab' | 'gharimin' | 'fisabilillah' | 'ibnu_sabil'
 export type VerificationStatus = 'unverified' | 'survey_scheduled' | 'verified' | 'rejected'
 export type DistributionType = 'cash' | 'goods' | 'service' | 'scholarship'
 export type DistributionStatus = 'requested' | 'approved' | 'disbursed' | 'rejected'
@@ -220,11 +219,21 @@ export interface DashboardSummary {
   composition: { name: string; code: string; amount: number }[]
   collection_vs_distribution: { month: string; collected: number; distributed: number }[]
   asnaf: { asnaf: Asnaf; name: string; amount: number }[]
-  programs: { id: string; name: string; target: number; collected: number; end_date: string | null }[]
+  programs: {
+    id: string
+    name: string
+    target: number
+    collected: number
+    end_date: string | null
+  }[]
   payment_methods: { method: PaymentMethod; amount: number; count: number }[]
   recent?: {
-    id: string; receipt_no: string; amount: number
-    donated_at: string; donor_name: string; fund_type_name: string
+    id: string
+    receipt_no: string
+    amount: number
+    donated_at: string
+    donor_name: string
+    fund_type_name: string
   }[]
   top_donors?: { id: string; name: string; amount: number; count: number }[]
   alerts?: {
