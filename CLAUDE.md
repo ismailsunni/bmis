@@ -66,6 +66,7 @@ These are the rules that distinguish correct code from code that merely runs.
 - **Wakaf principal is never a distribution source** — only its yield is distributable.
 - `program_id` is required when the fund type is `infaq_terikat`.
 - Disbursement is blocked if it exceeds the available balance *of that fund type*.
+- **Transfer codes are the attribution signal on a bank mutation.** Donors append a published 3-digit code to the amount (`Rp100.153` = Rp 100.000 for code 153). A code lives on `fund_types.transfer_code` when it names a fund type (101, 112) or on `programs.code` when it names a programme, and `donation_codes_v` is the single lookup. Codes are unique *across both tables* — a trigger enforces the half a constraint cannot. An amount with no recognised code is general sedekah, never a guess.
 - `period_locks` freeze a `YYYY-MM` period: no inserts/updates with `donated_at` in it except by `super_admin`.
 - Roles, in rank order: `super_admin` > `finance` > `auditor` > `amil` > `viewer`. The permission matrix in PRD §4.1 is authoritative.
 
@@ -81,7 +82,7 @@ These are the rules that distinguish correct code from code that merely runs.
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 63 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 69 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 

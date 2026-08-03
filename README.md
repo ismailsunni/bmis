@@ -92,8 +92,27 @@ The anon key is in the bundle and must be assumed public, so:
   it.
 
 `supabase/tests/rls_test.sql` asserts all of the above for each of the five
-roles — 63 assertions covering both allowed and denied operations. It must pass
+roles — 69 assertions covering both allowed and denied operations. It must pass
 before release.
+
+## Transfer codes
+
+Donors are asked to append a published 3-digit code to the transfer amount, so
+`Rp100.153` means Rp 100.000 intended for code 153. That code is the only
+attribution signal a bank mutation carries, so it is modelled as data:
+`fund_types.transfer_code` for codes naming a fund type (101 Zakat Maal, 112
+Fidyah) and `programs.code` for the twelve naming a programme, with
+`donation_codes_v` as the single lookup and uniqueness enforced across both
+tables.
+
+The entry form suggests the destination as the amil types an amount, and the
+bank importer attributes each row on its own code, falling back to an
+operator-chosen fund type. An amount with no recognised code stays general
+sedekah — it is never guessed at.
+
+The seeded programmes, BSI account and organisation name come from the Baitul
+Maal Muhajirin poster; edit that block of `supabase/seed.sql` for another
+institution.
 
 ## Layout
 
