@@ -63,7 +63,14 @@ export function ProgramsPage() {
           return (
             <Card key={p.id}>
               <div className="mb-2 flex items-start justify-between gap-2">
-                <h3 className="font-semibold">{p.name}</h3>
+                <div>
+                  <h3 className="font-semibold">{p.name}</h3>
+                  {p.code && (
+                    <p className="text-xs text-slate-500">
+                      Kode transfer <span className="font-mono">{p.code}</span>
+                    </p>
+                  )}
+                </div>
                 <Badge tone={p.status === 'active' ? 'success' : 'neutral'}>
                   {programStatusLabels[p.status]}
                 </Badge>
@@ -121,15 +128,19 @@ function ProgramForm({ open, onClose }: { open: boolean; onClose: () => void }) 
   const qc = useQueryClient()
   const { data: fundTypes } = useFundTypes()
   const [form, setForm] = useState({
-    name: '', description: '', fund_type_id: '', target_amount: '',
+    name: '', code: '', description: '', fund_type_id: '', target_amount: '',
     start_date: '', end_date: '', status: 'active' as ProgramStatus,
   })
 
   const save = useMutation({
     mutationFn: async () => {
       const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      if (form.code && !/^\d{3}$/.test(form.code)) {
+        throw new Error('Kode transfer harus tepat 3 angka')
+      }
       const { error } = await supabase.from('programs').insert({
         name: form.name,
+        code: form.code || null,
         slug: `${slug}-${Date.now().toString(36)}`,
         description: form.description || null,
         fund_type_id: form.fund_type_id || null,
@@ -159,9 +170,18 @@ function ProgramForm({ open, onClose }: { open: boolean; onClose: () => void }) 
       }
     >
       <div className="space-y-3">
-        <Field label="Nama program" required>
-          <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
-        </Field>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2">
+            <Field label="Nama program" required>
+              <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Kode transfer"
+                 hint="3 angka, disisipkan donatur di akhir nominal">
+            <Input inputMode="numeric" maxLength={3} placeholder="153" value={form.code}
+                   onChange={(e) => set({ code: e.target.value.replace(/\D/g, '') })} />
+          </Field>
+        </div>
         <Field label="Deskripsi">
           <Textarea rows={2} value={form.description}
                     onChange={(e) => set({ description: e.target.value })} />

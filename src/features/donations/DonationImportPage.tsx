@@ -7,6 +7,7 @@ import { readSheet } from '@/lib/export'
 import { PageHeader } from '@/components/AppShell'
 import { Badge, Button, Card, ErrorNote, Field, Input, Select } from '@/components/ui'
 import { formatIDR } from '@/lib/format'
+import { matchTransferCode, useDonationCodes } from '@/lib/transferCode'
 import type { PaymentMethod } from '@/types/db'
 
 /** Columns we need out of a bank statement export. */
@@ -25,6 +26,11 @@ interface Staged {
   donor_name: string | null
   notes: string | null
   duplicate: boolean
+  /** Resolved from the trailing 3 digits of the amount, when they match a code. */
+  code: string | null
+  code_name: string | null
+  fund_type_id: string | null
+  program_id: string | null
   error?: string
 }
 
@@ -32,12 +38,18 @@ interface Staged {
  * Bulk import of a bank statement batch. Nothing is written until the operator
  * has seen the mapped preview; rows whose payment_ref already exists are
  * flagged and skipped, since that reference is the dedup key in the database.
+ *
+ * Each row is attributed by the transfer code in the last three digits of its
+ * amount — that code is the donor's only way of saying which programme they
+ * meant. Rows without a recognised code fall back to the destination the
+ * operator picks below, which is why that fallback is still required.
  */
 export function DonationImportPage() {
   const { user } = useAuth()
   const qc = useQueryClient()
   const { data: fundTypes } = useFundTypes()
   const { data: accounts } = useAccounts()
+  const { data: codes } = useDonationCodes()
 
   const [raw, setRaw] = useState<Record<string, unknown>[]>([])
   const [columns, setColumns] = useState<string[]>([])
@@ -79,6 +91,7 @@ export function DonationImportPage() {
       const amount = Number(String(r[mapping.amount!] ?? '').replace(/[^\d.-]/g, ''))
       const rawDate = r[mapping.donated_at!]
       const date = rawDate instanceof Date ? rawDate : new Date(String(rawDate))
+      const match = matchTransferCode(amount, codes)
       return {
         donated_at: Number.isNaN(date.getTime()) ? '' : date.toISOString(),
         amount,
@@ -86,6 +99,10 @@ export function DonationImportPage() {
         donor_name: mapping.donor_name ? String(r[mapping.donor_name] ?? '') || null : null,
         notes: mapping.notes ? String(r[mapping.notes] ?? '') || null : null,
         duplicate: false,
+        code: match?.code ?? null,
+        code_name: match?.name ?? null,
+        fund_type_id: match?.fund_type_id ?? null,
+        program_id: match?.program_id ?? null,
         error: !amount || amount <= 0 ? 'Jumlah tidak valid'
           : Number.isNaN(date.getTime()) ? 'Tanggal tidak valid' : undefined,
       }
@@ -108,14 +125,17 @@ export function DonationImportPage() {
       if (!fundTypeId || !accountId) throw new Error('Pilih jenis dana dan rekening tujuan')
       const payload = importable.map((r) => ({
         is_anonymous: true,
-        fund_type_id: fundTypeId,
+        // the donor's own code wins over the operator's fallback
+        fund_type_id: r.fund_type_id ?? fundTypeId,
+        program_id: r.program_id,
         account_id: accountId,
         amount: r.amount,
         payment_method: method,
         payment_ref: r.payment_ref,
         donated_at: r.donated_at,
         status: 'pending' as const,
-        notes: [r.donor_name, r.notes].filter(Boolean).join(' — ') || null,
+        notes: [r.donor_name, r.notes, r.code ? `kode ${r.code}` : null]
+          .filter(Boolean).join(' — ') || null,
         created_by: user!.id,
       }))
       const { error } = await supabase.from('donations').insert(payload)
@@ -163,7 +183,8 @@ export function DonationImportPage() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <Field label="Jenis dana untuk semua baris" required>
+              <Field label="Jenis dana bila kode tidak dikenali" required
+                     hint="Dipakai hanya untuk baris tanpa kode yang cocok">
                 <Select value={fundTypeId} onChange={(e) => setFundTypeId(e.target.value)}>
                   <option value="">— pilih —</option>
                   {fundTypes?.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -192,8 +213,11 @@ export function DonationImportPage() {
         {staged && (
           <Card>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex gap-2 text-sm">
+              <div className="flex flex-wrap gap-2 text-sm">
                 <Badge tone="success">{importable.length} siap diimpor</Badge>
+                <Badge tone="info">
+                  {staged.filter((r) => r.code).length} terbaca dari kode
+                </Badge>
                 <Badge tone="warning">{staged.filter((r) => r.duplicate).length} duplikat</Badge>
                 <Badge tone="danger">{staged.filter((r) => r.error).length} bermasalah</Badge>
               </div>
@@ -208,14 +232,20 @@ export function DonationImportPage() {
             <div className="table-wrap max-h-96 overflow-y-auto">
               <table className="tbl">
                 <thead>
-                  <tr><th>Tanggal</th><th className="num">Jumlah</th><th>Referensi</th>
-                      <th>Pengirim</th><th>Status</th></tr>
+                  <tr><th>Tanggal</th><th className="num">Jumlah</th><th>Kode / tujuan</th>
+                      <th>Referensi</th><th>Pengirim</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                   {staged.map((r, i) => (
                     <tr key={i} className={r.error || r.duplicate ? 'opacity-60' : ''}>
                       <td>{r.donated_at ? r.donated_at.slice(0, 10) : '—'}</td>
                       <td className="num">{formatIDR(r.amount)}</td>
+                      <td>
+                        {r.code
+                          ? <><span className="font-mono text-xs">{r.code}</span>
+                              <span className="ml-1">{r.code_name}</span></>
+                          : <span className="text-slate-400">sedekah umum</span>}
+                      </td>
                       <td className="font-mono text-xs">{r.payment_ref ?? '—'}</td>
                       <td className="max-w-[200px] truncate">{r.donor_name ?? '—'}</td>
                       <td>

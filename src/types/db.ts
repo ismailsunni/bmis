@@ -25,6 +25,8 @@ export interface Profile {
 export interface FundType {
   id: string
   code: string
+  /** 3-digit code donors append to the transfer amount, when the fund type has one. */
+  transfer_code: string | null
   name: string
   is_zakat: boolean
   allowed_asnaf: Asnaf[]
@@ -49,6 +51,8 @@ export interface Program {
   id: string
   name: string
   slug: string
+  /** 3-digit code donors append to the transfer amount. */
+  code: string | null
   description: string | null
   fund_type_id: string | null
   target_amount: number

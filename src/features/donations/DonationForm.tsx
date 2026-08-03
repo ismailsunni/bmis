@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAccounts, useFundTypes, usePrograms } from '@/lib/queries'
 import { uploadProof } from '@/lib/storage'
-import { maskIDR, parseIDR, todayJakarta } from '@/lib/format'
+import { formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
+import { baseAmountOf, matchTransferCode, useDonationCodes } from '@/lib/transferCode'
 import { paymentMethodLabels } from '@/lib/labels'
 import { Button, ErrorNote, Field, Input, Modal, Select, Textarea } from '@/components/ui'
 import { DonorPicker } from '@/features/donors/DonorPicker'
@@ -27,6 +28,7 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
   const { data: fundTypes } = useFundTypes()
   const { data: accounts } = useAccounts()
   const { data: programs } = usePrograms()
+  const { data: codes } = useDonationCodes()
 
   const [donorId, setDonorId] = useState<string | null>(null)
   const [anonymous, setAnonymous] = useState(false)
@@ -48,6 +50,20 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
 
   const fundType = fundTypes?.find((f) => f.id === fundTypeId)
   const programRequired = fundType?.requires_program ?? false
+
+  // A transferred amount usually carries the programme code in its last three
+  // digits. Surfacing the match lets the amil confirm the donor's intent rather
+  // than guess at it, and it is only ever a suggestion.
+  const matched = matchTransferCode(parseIDR(amount), codes)
+  const applyMatch = () => {
+    if (!matched) return
+    setFundTypeId(matched.fund_type_id)
+    setProgramId(matched.program_id ?? '')
+  }
+  const matchApplied = matched
+    ? matched.fund_type_id === fundTypeId
+      && (matched.program_id ?? '') === programId
+    : false
 
   const reset = () => {
     setDonorId(null); setAnonymous(false); setAmount(''); setPaymentRef('')
@@ -135,9 +151,29 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
           />
         </Field>
 
+        {matched && (
+          <div className="rounded-lg bg-brand-50 p-3 text-sm dark:bg-brand-900/20">
+            <p>
+              Kode <strong>{matched.code}</strong> pada nominal ini merujuk{' '}
+              <strong>{matched.name}</strong>
+              {' '}(donasi {formatIDR(baseAmountOf(parseIDR(amount)))} + kode).
+            </p>
+            {!matchApplied && (
+              <button type="button" onClick={applyMatch}
+                      className="mt-1 font-medium text-brand-700 hover:underline dark:text-brand-300">
+                Terapkan
+              </button>
+            )}
+          </div>
+        )}
+
         <Field label="Jenis dana" required>
           <Select value={fundTypeId} onChange={(e) => setFundTypeId(e.target.value)}>
-            {fundTypes?.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {fundTypes?.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.transfer_code ? `${f.transfer_code} — ${f.name}` : f.name}
+              </option>
+            ))}
           </Select>
         </Field>
 
@@ -149,7 +185,11 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
           <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
             <option value="">— tanpa program —</option>
             {programs?.filter((p) => p.status === 'active')
-              .map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.code ? `${p.code} — ${p.name}` : p.name}
+                </option>
+              ))}
           </Select>
         </Field>
 
