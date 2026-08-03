@@ -72,8 +72,10 @@ Deno.serve(async (req) => {
   await admin.auth.admin.updateUserById(invited.user.id, {
     app_metadata: { user_role: role },
   })
+  // is_active is set explicitly: the signup trigger creates every profile
+  // inactive, so an invitation is the act of admitting someone.
   await admin.from('profiles')
-    .update({ role, full_name: full_name ?? '', email })
+    .update({ role, full_name: full_name ?? '', email, is_active: true })
     .eq('id', invited.user.id)
 
   return json({ id: invited.user.id, email, role })

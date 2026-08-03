@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(80);
+select plan(93);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -24,7 +24,9 @@ end $$;
 create or replace function tests.logout() returns void language plpgsql as $$
 begin
   execute 'reset role';
-  perform set_config('request.jwt.claims', '', true);
+  -- an empty claim *set*, not an empty string: '' is not valid JSON, and
+  -- auth.uid() casts this GUC, so '' would make the cast itself throw
+  perform set_config('request.jwt.claims', '{}', true);
 end $$;
 
 create or replace function tests.mkuser(p_email text, p_role public.user_role)
@@ -34,7 +36,11 @@ begin
   insert into auth.users (id, instance_id, aud, role, email, created_at, updated_at)
   values (uid, '00000000-0000-0000-0000-000000000000', 'authenticated',
           'authenticated', p_email, now(), now());
-  update public.profiles set role = p_role, full_name = p_email where id = uid;
+  -- profiles are created inactive by the signup trigger; admitting them is
+  -- what an invitation does, so the fixture does it explicitly
+  update public.profiles
+     set role = p_role, full_name = p_email, is_active = true
+   where id = uid;
   return uid;
 end $$;
 
@@ -420,7 +426,57 @@ select throws_ok(
   '23514', null, 'a transfer code must be exactly three digits');
 select tests.logout();
 
--- ====================================================== 11. dashboard & reports
+-- ================================================= 11. membership gate ('none')
+-- Google sign-in lets anyone with a Google account reach the auth endpoint, so
+-- an account that exists but has not been admitted must reach nothing at all.
+select is(public.role_rank('none'), 0, 'an unadmitted account ranks below viewer');
+select ok(public.role_rank('viewer') > public.role_rank('none'),
+  'viewer still outranks an unadmitted account');
+
+-- the hook is what assigns 'none': an inactive profile gets it, an active one does not
+select is(
+  public.custom_access_token_hook(jsonb_build_object(
+    'user_id', tests.uid('view'), 'claims', '{}'::jsonb))
+    -> 'claims' -> 'app_metadata' ->> 'user_role',
+  'viewer', 'an admitted account receives its real role in the token');
+
+update public.profiles set is_active = false where id = tests.uid('view');
+select is(
+  public.custom_access_token_hook(jsonb_build_object(
+    'user_id', tests.uid('view'), 'claims', '{}'::jsonb))
+    -> 'claims' -> 'app_metadata' ->> 'user_role',
+  'none', 'a deactivated account is downgraded to none in the token');
+update public.profiles set is_active = true where id = tests.uid('view');
+
+select is(
+  public.custom_access_token_hook(jsonb_build_object(
+    'user_id', gen_random_uuid(), 'claims', '{}'::jsonb))
+    -> 'claims' -> 'app_metadata' ->> 'user_role',
+  'none', 'an auth user with no profile row is none, not viewer');
+
+select tests.login(tests.uid('view'), 'none');
+select is_empty($$ select 1 from public.fund_types $$,
+  'an unadmitted account cannot read master data');
+select is_empty($$ select 1 from public.programs $$,
+  'an unadmitted account cannot read programmes');
+select is_empty($$ select 1 from public.settings $$,
+  'an unadmitted account cannot read organisation settings');
+select is_empty($$ select 1 from public.donors_masked_v $$,
+  'an unadmitted account cannot read even masked donor names');
+select is_empty($$ select 1 from public.donations_public_v $$,
+  'an unadmitted account cannot read verified donation amounts');
+select is_empty($$ select 1 from public.donation_codes_v $$,
+  'an unadmitted account cannot read the transfer codes');
+select throws_ok(
+  $$ select public.rpc_dashboard_summary(current_date - 30, current_date) $$,
+  '42501', null, 'an unadmitted account is refused the dashboard outright');
+select is_empty(
+  $$ select 1 from public.rpc_fund_balance_report(
+       (current_date - 30)::date, current_date::date) $$,
+  'an unadmitted account gets no fund balances');
+select tests.logout();
+
+-- ====================================================== 12. dashboard & reports
 -- These RPCs were shipped untested and a plain ambiguous-column error took the
 -- whole dashboard down for every role. Calling them per role is the point:
 -- a compile error inside plpgsql only surfaces on execution.
@@ -471,7 +527,7 @@ select lives_ok(
   'a donor statement can be produced');
 select tests.logout();
 
--- ============================================================= 12. audit trail
+-- ============================================================= 13. audit trail
 select is(
   (select count(*)::int from public.audit_log
    where table_name = 'donations' and record_id = '22222222-2222-2222-2222-222222222222'),

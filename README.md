@@ -98,8 +98,25 @@ The anon key is in the bundle and must be assumed public, so:
   it.
 
 `supabase/tests/rls_test.sql` asserts all of the above for each of the five
-roles — 80 assertions covering both allowed and denied operations. It must pass
+roles — 93 assertions covering both allowed and denied operations. It must pass
 before release.
+
+## Sign-in and membership
+
+Password, magic link and **Google** are all enabled. None of them can create an
+account: GoTrue signup is disabled, and separately, having an auth account does
+not grant access. The signup trigger creates every profile `is_active = false`,
+an inactive or missing profile resolves to the role `none`, which ranks below
+`viewer` and is denied by every policy — so an unadmitted Google account reads
+nothing at all, not even masked donor names or aggregate totals.
+
+Admitting someone is therefore an explicit act: invite them from the Pengguna
+screen (which sets `is_active`), or flip it there for a user created by hand in
+the Supabase dashboard.
+
+To enable Google: **Authentication → Sign In / Providers → Google**, with the
+client ID and secret from a Google Cloud OAuth client whose authorised redirect
+URI is `https://<project-ref>.supabase.co/auth/v1/callback`.
 
 ## Transfer codes
 

@@ -59,8 +59,15 @@ These are the rules that distinguish correct code from code that merely runs.
 - A function with a `SET` clause (`set search_path = ''`) runs in its own GUC nesting level, so **every setting it changes is rolled back when it returns**. `set_audit_reason()` therefore has no `SET` clause — adding one silently breaks every audit reason.
 - `fund_balance()` and `next_counter()` are `SECURITY DEFINER` because an amil's RLS view of `donations` is only their own rows; an invoker-rights balance would be wrong precisely inside the guard that needs it.
 - Index expressions must be `IMMUTABLE` — `date_trunc('month', timestamptz)` is not.
+- `current_role()` and `is_service_role()` must never be able to raise: they run in every policy, and `''::jsonb` is a cast error rather than a null, so the claims GUC needs `nullif(…, '')` before the cast. Same in test helpers — leave `request.jwt.claims` as `'{}'`, never `''`, or `auth.uid()` itself throws.
 - In a single test transaction every row shares the same `now()`, so order audit assertions by `id`, never `created_at`.
 - A PL/pgSQL variable that shares a name with a column in scope raises `42702` **at execution time, not creation time** — `create function` accepts it happily. `rpc_dashboard_summary` shipped broken this way and took down the dashboard for every role. Qualify column references inside subqueries, and make sure every RPC is actually *called* by the test suite; asserting a policy exists proves nothing about the function that reads it.
+
+## Membership is not authentication
+
+An auth account is not access. `handle_new_user` creates profiles `is_active = false`; the access token hook maps an inactive or missing profile to the role **`none`**, whose `role_rank` is 0 — below `viewer`. Every read policy requires at least `has_min_role('viewer')`, and the definer-rights objects (`donors_masked_v`, `donations_public_v`, `rpc_dashboard_summary`, `rpc_fund_balance_report`) carry that check internally since RLS does not apply to them.
+
+This exists because Google sign-in lets anyone with a Google account reach the auth endpoint. Without the gate, invite-only would rest solely on GoTrue's signup toggle, and flipping it would expose the org's financial aggregates and masked donor names to strangers. Do not add a policy with `using (true)` — that reintroduces the hole.
 
 ## Domain rules that are easy to get wrong
 
@@ -84,7 +91,7 @@ These are the rules that distinguish correct code from code that merely runs.
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 80 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 93 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 
