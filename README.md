@@ -114,8 +114,38 @@ Also set **Settings → Pages → Source** to _GitHub Actions_, and add the Page
 URL to Supabase **Auth → URL Configuration** as the site URL and a redirect
 URL, or magic links and invitations will bounce.
 
-Pages serves from `/<repo>/`, so the build takes its base path from the repo
-name and ships `index.html` as `404.html` to let the SPA resolve deep links.
+Pages serves a project site from `/<repo>/`, so the build takes its base path
+from the repo name and ships `index.html` as `404.html` to let the SPA resolve
+deep links.
+
+### Custom domain
+
+A custom domain serves the site from the **root**, not `/<repo>/`, so the base
+path has to change with it or every asset 404s. That switch is the
+`PAGES_DOMAIN` repository variable:
+
+| `PAGES_DOMAIN`     | Base path  | Served at                          |
+| ------------------ | ---------- | ---------------------------------- |
+| unset              | `/<repo>/` | `https://<user>.github.io/<repo>/` |
+| `bmis.example.com` | `/`        | `https://bmis.example.com/`        |
+
+Setting it also writes a `CNAME` file into the artifact, so a deploy cannot drop
+the domain.
+
+Order matters — set the variable **last**, once DNS resolves and the domain is
+saved in Settings → Pages. Setting it earlier publishes a root-path build to a
+subpath URL, which breaks the live site until DNS catches up:
+
+1. At the DNS host, add `CNAME  bmis  →  <user>.github.io`
+2. Wait for it to resolve (`dig +short bmis.example.com`)
+3. Settings → Pages → Custom domain → save, and wait for the certificate
+4. `gh variable set PAGES_DOMAIN --body 'bmis.example.com'`
+5. Re-run the workflow, then tick **Enforce HTTPS**
+6. Add the new origin to Supabase → Auth → URL Configuration, including
+   `https://bmis.example.com/auth/callback`
+
+The Google OAuth client needs no change: its authorised redirect URI points at
+Supabase's callback, not at the app.
 
 ## Security model
 

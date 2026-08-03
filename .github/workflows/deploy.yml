@@ -67,8 +67,11 @@ jobs:
 
       - name: Build
         env:
-          # Pages serves from https://<user>.github.io/<repo>/
-          BASE_PATH: /${{ github.event.repository.name }}/
+          # A project site is served from /<repo>/, but a custom domain serves it
+          # from the root instead — so the base path has to follow the domain or
+          # every asset request 404s. Set the PAGES_DOMAIN repository variable
+          # when a custom domain is configured, leave it unset otherwise.
+          BASE_PATH: ${{ vars.PAGES_DOMAIN != '' && '/' || format('/{0}/', github.event.repository.name) }}
           # The anon key is public by design — RLS is the security boundary —
           # but it is kept in repo secrets so it is masked in build logs and
           # can be rotated without a code change.
@@ -81,6 +84,11 @@ jobs:
 
       # Pages would otherwise run the output through Jekyll.
       - run: touch dist/.nojekyll
+
+      # Ships the domain with the artifact so a deploy cannot drop it.
+      - name: Pin the custom domain
+        if: vars.PAGES_DOMAIN != ''
+        run: echo '${{ vars.PAGES_DOMAIN }}' > dist/CNAME
 
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
