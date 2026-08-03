@@ -82,7 +82,33 @@ Sama seperti 2a, dengan dua tambahan:
 Untuk QRIS anonim: aktifkan **Donasi anonim**, pilih metode **QRIS**, dan isi
 nomor transaksi QRIS pada Referensi pembayaran.
 
-### 2d. Impor mutasi bank sekaligus
+### 2d. Mencatat banyak donasi sekaligus
+
+Untuk kotak amal Jumat, kegiatan, atau setumpuk slip yang perlu dientri
+sekaligus — tanpa berkas mutasi bank.
+
+1. Buka **Donasi → Catat massal**.
+2. Isi bagian atas satu kali: **Tanggal donasi**, **Rekening penerima**,
+   **Jenis dana bawaan**, dan **Metode bawaan**. Nilai bawaan dipakai untuk
+   setiap baris baru; **Terapkan ke semua baris** menyamakan jenis dana pada
+   seluruh baris yang sudah ada.
+3. Isi barisnya. Setiap baris punya donatur (atau centang **Anonim**), jumlah,
+   jenis dana, program, metode, dan referensi. Baris baru muncul sendiri begitu
+   baris terakhir diisi.
+4. Bila nominal memuat kode program, muncul tautan kecil di bawah kolom jumlah
+   seperti “kode 153 → Sedekah Bantu Petani”. Tekan untuk menerapkannya.
+5. Perhatikan **jumlah baris dan total** di bagian bawah — cocokkan dengan uang
+   yang Anda hitung sebelum menyimpan.
+6. Tekan **Simpan N donasi**.
+
+Baris yang bermasalah diberi latar merah dan alasannya tercantum di bawah tabel,
+misalnya donatur belum dipilih atau referensi dipakai dua kali. Tombol simpan
+tetap terkunci sampai semuanya beres.
+
+Seluruh baris tersimpan dalam satu kali proses: bila ada satu yang gagal, tidak
+ada yang tersimpan. Jadi tidak akan ada setoran yang setengah tercatat.
+
+### 2e. Impor mutasi bank sekaligus
 
 Cara tercepat menangani banyak transfer dan QRIS sekaligus.
 
@@ -102,7 +128,7 @@ Cara tercepat menangani banyak transfer dan QRIS sekaligus.
 
 Tidak ada data yang tersimpan sebelum Anda menekan Impor.
 
-### 2e. Mengirim kwitansi ke donatur
+### 2f. Mengirim kwitansi ke donatur
 
 Pada daftar **Donasi**, baris yang sudah terverifikasi memiliki ikon WhatsApp.
 Menekannya menyalin teks kwitansi ke papan klip dan membuka WhatsApp; pilih

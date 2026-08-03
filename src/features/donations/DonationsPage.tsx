@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Upload, MessageCircle, Download } from 'lucide-react'
+import { Plus, Upload, MessageCircle, Download, Rows3 } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
 import { useDonations, useFundTypes, useSettings, type DonationFilters } from '@/lib/queries'
@@ -73,6 +73,11 @@ export function DonationsPage() {
             )}
             {can.recordDonation(role) && (
               <>
+                <Link to="/donasi/massal">
+                  <Button variant="secondary" size="sm">
+                    <Rows3 size={16} /> Catat massal
+                  </Button>
+                </Link>
                 <Link to="/donasi/impor">
                   <Button variant="secondary" size="sm">
                     <Upload size={16} /> Impor

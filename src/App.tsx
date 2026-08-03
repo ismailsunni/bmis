@@ -8,6 +8,7 @@ import { LoginPage } from '@/features/LoginPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { DonationsPage } from '@/features/donations/DonationsPage'
 import { DonationImportPage } from '@/features/donations/DonationImportPage'
+import { BulkDonationPage } from '@/features/donations/BulkDonationPage'
 import { VerificationQueue } from '@/features/donations/VerificationQueue'
 import { DonorsPage } from '@/features/donors/DonorsPage'
 import { DonorDetailPage } from '@/features/donors/DonorDetailPage'
@@ -41,6 +42,7 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/" element={shell(<DashboardPage />)} />
       <Route path="/donasi" element={shell(<DonationsPage />)} />
+      <Route path="/donasi/massal" element={shell(<BulkDonationPage />, can.recordDonation)} />
       <Route path="/donasi/impor" element={shell(<DonationImportPage />, can.recordDonation)} />
       <Route path="/verifikasi" element={shell(<VerificationQueue />, can.verifyDonation)} />
       <Route path="/donatur" element={shell(<DonorsPage />, can.readDonorPII)} />

@@ -53,6 +53,19 @@ screen (which calls the `invite-user` Edge Function).
 
 Run one unit test file: `npx vitest run src/lib/format.test.ts`
 
+### Recording donations
+
+Three routes into the same table, for three real situations:
+
+| Screen           | For                                                                                                                                                                                                       |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Catat donasi** | one donation, phone-friendly, under 45 seconds                                                                                                                                                            |
+| **Catat massal** | many donations typed at once — Friday collection, an event, a stack of slips. Batch-level date and account, per-row donor and amount, inserted in a single statement so a batch lands whole or not at all |
+| **Impor**        | a bank or QRIS statement file, mapped and previewed, attributed per row by transfer code                                                                                                                  |
+
+All three write `status = 'pending'`, so nothing reaches a balance without a
+bendahara verifying it.
+
 ### About `npm run db:test`
 
 `supabase test db` runs the pgTAP suite against the **local** Supabase stack on
