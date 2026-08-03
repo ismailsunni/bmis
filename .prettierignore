@@ -1,0 +1,7 @@
+dist
+node_modules
+package-lock.json
+# SQL has no Prettier parser, and the migrations are deliberately hand-aligned
+supabase/migrations
+supabase/tests
+supabase/seed.sql

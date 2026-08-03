@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev              # Vite dev server
+npm run format           # Prettier, writing changes
 npm run build            # tsc -b && vite build
 npm run typecheck        # types only
-npm run lint             # ESLint
+npm run lint             # ESLint (eslint-config-prettier is last, so the two never fight)
+npm run format:check     # what CI runs — fails rather than writing
 npm test                 # Vitest
 npx vitest run src/lib/format.test.ts   # a single test file
 npm run db:reset         # supabase db reset — migrations + seed
@@ -22,7 +24,7 @@ The PRD (`PRD-baitul-maal-admin.md`) remains the spec of record; `README.md` lis
 
 ## What is being built
 
-BMIS — an internal web app for an Indonesian Baitul Maal / LAZ (zakat institution) replacing a shared spreadsheet. It records *penghimpunan* (collection) and *penyaluran* (distribution), keeps per-fund balances correct, and serves a role-scoped dashboard.
+BMIS — an internal web app for an Indonesian Baitul Maal / LAZ (zakat institution) replacing a shared spreadsheet. It records _penghimpunan_ (collection) and _penyaluran_ (distribution), keeps per-fund balances correct, and serves a role-scoped dashboard.
 
 ## Architecture
 
@@ -40,11 +42,11 @@ These are the rules that distinguish correct code from code that merely runs.
 
 1. **Security lives in RLS, never in React.** The anon key ships to the browser and is public. Any access rule enforced only in the UI is not a rule. Every table has RLS enabled and default-deny.
 2. **Never put the service-role key in client code.** CI greps the bundle for it.
-3. **Roles come from the JWT** — and the client must read the *same* claim. `session.user.app_metadata` is not it: that mirrors `auth.users.raw_app_meta_data`, which the access token hook never writes, so a role set only in `profiles` shows as `viewer` in React while RLS sees the real one. `AuthProvider` decodes `session.access_token` instead, and surfaces a banner when the claim is missing rather than silently degrading.
+3. **Roles come from the JWT** — and the client must read the _same_ claim. `session.user.app_metadata` is not it: that mirrors `auth.users.raw_app_meta_data`, which the access token hook never writes, so a role set only in `profiles` shows as `viewer` in React while RLS sees the real one. `AuthProvider` decodes `session.access_token` instead, and surfaces a banner when the claim is missing rather than silently degrading.
    Policies read `auth.jwt() -> 'app_metadata' ->> 'user_role'` via `public.current_role()` / `public.has_min_role(text)`. Adding a per-row lookup to `profiles` in a policy is a performance regression on dashboard queries.
 4. **Separation of duties is a DB check**, not UI logic: `created_by <> verified_by` on donations and distributions. `super_admin` may override only with an audited reason.
 5. **`viewer` never queries base tables.** It reads masked views (`donations_public_v`, `donors_masked_v`) and the dashboard RPC; base-table SELECT policies exclude it entirely. See the departures note below for why those two views are definer-rights.
-6. **Nothing is hard-deleted.** Donations are *voided*, records are soft-deleted via `deleted_at`. `audit_log` is append-only — no UPDATE/DELETE policy exists for any role.
+6. **Nothing is hard-deleted.** Donations are _voided_, records are soft-deleted via `deleted_at`. `audit_log` is append-only — no UPDATE/DELETE policy exists for any role.
 7. **Only `status = 'verified'` donations count** toward balances, dashboard figures, and reports.
 8. **Money is `numeric(15,2)` in rupiah** (not cents, never floats).
 9. **Dashboard aggregates never pull rows into the browser.** `rpc_dashboard_summary(p_from, p_to)` returns the whole dashboard as one jsonb payload; the heaviest rollups are matviews refreshed by pg_cron every 15 minutes.
@@ -61,7 +63,7 @@ These are the rules that distinguish correct code from code that merely runs.
 - Index expressions must be `IMMUTABLE` — `date_trunc('month', timestamptz)` is not.
 - `current_role()` and `is_service_role()` must never be able to raise: they run in every policy, and `''::jsonb` is a cast error rather than a null, so the claims GUC needs `nullif(…, '')` before the cast. Same in test helpers — leave `request.jwt.claims` as `'{}'`, never `''`, or `auth.uid()` itself throws.
 - In a single test transaction every row shares the same `now()`, so order audit assertions by `id`, never `created_at`.
-- A PL/pgSQL variable that shares a name with a column in scope raises `42702` **at execution time, not creation time** — `create function` accepts it happily. `rpc_dashboard_summary` shipped broken this way and took down the dashboard for every role. Qualify column references inside subqueries, and make sure every RPC is actually *called* by the test suite; asserting a policy exists proves nothing about the function that reads it.
+- A PL/pgSQL variable that shares a name with a column in scope raises `42702` **at execution time, not creation time** — `create function` accepts it happily. `rpc_dashboard_summary` shipped broken this way and took down the dashboard for every role. Qualify column references inside subqueries, and make sure every RPC is actually _called_ by the test suite; asserting a policy exists proves nothing about the function that reads it.
 
 ## Membership is not authentication
 
@@ -78,8 +80,8 @@ The gate exists because Google sign-in lets anyone with a Google account reach t
 - **Fund type governs spendability.** Zakat funds (`zakat_maal`, `zakat_fitrah`, `zakat_profesi`) may only be distributed to the 8 asnaf; a distribution's `fund_type` must be compatible with the beneficiary's `asnaf`.
 - **Wakaf principal is never a distribution source** — only its yield is distributable.
 - `program_id` is required when the fund type is `infaq_terikat`.
-- Disbursement is blocked if it exceeds the available balance *of that fund type*.
-- **Transfer codes are the attribution signal on a bank mutation.** Donors append a published 3-digit code to the amount (`Rp100.153` = Rp 100.000 for code 153). A code lives on `fund_types.transfer_code` when it names a fund type (101, 112) or on `programs.code` when it names a programme, and `donation_codes_v` is the single lookup. Codes are unique *across both tables* — a trigger enforces the half a constraint cannot. An amount with no recognised code is general sedekah, never a guess.
+- Disbursement is blocked if it exceeds the available balance _of that fund type_.
+- **Transfer codes are the attribution signal on a bank mutation.** Donors append a published 3-digit code to the amount (`Rp100.153` = Rp 100.000 for code 153). A code lives on `fund_types.transfer_code` when it names a fund type (101, 112) or on `programs.code` when it names a programme, and `donation_codes_v` is the single lookup. Codes are unique _across both tables_ — a trigger enforces the half a constraint cannot. An amount with no recognised code is general sedekah, never a guess.
 - `period_locks` freeze a `YYYY-MM` period: no inserts/updates with `donated_at` in it except by `super_admin`.
 - Roles, in rank order: `super_admin` > `finance` > `auditor` > `amil` > `viewer`. The permission matrix in PRD §4.1 is authoritative.
 
@@ -89,13 +91,13 @@ The gate exists because Google sign-in lets anyone with a Google account reach t
 - Generated identifiers: donors `DNR-000123`, donation receipts `KW/2026/08/0001`.
 - All tables carry `id uuid default gen_random_uuid()`, `created_at`, `updated_at`, `created_by`, and an audit trigger.
 - Mobile-first: layouts work from 360 px; the donation entry flow targets under 45 seconds one-handed. Touch targets are 44 px (`Button size="md"`).
-- `src/auth/permissions.ts` decides what to *render*; it is never authorization. Note `canWrite()` is not a rank comparison — `auditor` outranks `amil` for reads but must never write, and the same asymmetry exists in SQL as `public.can_write()`.
+- `src/auth/permissions.ts` decides what to _render_; it is never authorization. Note `canWrite()` is not a rank comparison — `auditor` outranks `amil` for reads but must never write, and the same asymmetry exists in SQL as `public.can_write()`.
 - State transitions go through RPCs (`rpc_verify_donation`, `rpc_approve_distribution`, …), not raw table updates, so timestamps, actor and audit reason are set atomically.
 - Chart colours come from `src/features/dashboard/palette.ts` — a fixed, CVD-validated slot order that is never cycled. A seventh category folds into "Lainnya". Every chart ships a table view; three light-mode slots fall under 3:1 contrast, so identity must not rest on the fill alone.
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 93 assertions covering allowed *and denied* operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 93 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 

@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   check:
-    name: Typecheck, lint and test
+    name: Format, typecheck, lint and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,9 +37,19 @@ jobs:
       - name: Guard against a service-role key in client code
         run: ./scripts/check-no-service-key.sh
 
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
+      # Each step is separate so a red run names the failure in its title
+      # rather than making you open the log to find out which check broke.
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Types
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
 
   build:
     name: Build
