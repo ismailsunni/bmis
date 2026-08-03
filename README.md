@@ -103,12 +103,17 @@ before release.
 
 ## Sign-in and membership
 
-Password, magic link and **Google** are all enabled. None of them can create an
-account: GoTrue signup is disabled, and separately, having an auth account does
-not grant access. The signup trigger creates every profile `is_active = false`,
+Password, magic link and **Google** are all enabled.
+
+**Google requires GoTrue signup to be enabled**, which is counter-intuitive:
+with signup disabled, GoTrue treats an unlinked Google identity as a signup and
+rejects it even when an account with that email already exists, so linking can
+never happen. That is safe here only because access does not follow from having
+an account. The signup trigger creates every profile `is_active = false`,
 an inactive or missing profile resolves to the role `none`, which ranks below
-`viewer` and is denied by every policy — so an unadmitted Google account reads
-nothing at all, not even masked donor names or aggregate totals.
+`viewer` and is denied by every policy — so a Google account that signs itself up
+reads nothing at all, not even masked donor names or aggregate totals, and lands
+on a "waiting for activation" screen.
 
 Admitting someone is therefore an explicit act: invite them from the Pengguna
 screen (which sets `is_active`), or flip it there for a user created by hand in

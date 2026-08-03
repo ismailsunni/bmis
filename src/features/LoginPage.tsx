@@ -27,17 +27,22 @@ export function LoginPage() {
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  // A provider redirect reports failure in the URL fragment, so an uninvited
-  // Google account would otherwise bounce back to a blank form with no reason.
+  // A failed provider redirect reports itself in the query string under the
+  // PKCE flow and in the fragment under the implicit flow. Reading only one of
+  // them silently swallows the reason and drops the user on a blank form.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.slice(1))
-    const code = params.get('error_code')
-    const description = params.get('error_description')
+    const search = new URLSearchParams(window.location.search)
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const code = search.get('error_code') ?? hash.get('error_code')
+    const description = search.get('error_description') ?? hash.get('error_description')
     if (!code && !description) return
+
+    const text = description?.replace(/\+/g, ' ')
     setError(
-      code === 'signup_disabled' || description?.includes('not allowed')
-        ? 'Akun ini belum terdaftar. Hubungi pengurus untuk mendapatkan undangan.'
-        : description?.replace(/\+/g, ' ') ?? 'Gagal masuk dengan penyedia tersebut',
+      code === 'signup_disabled' || text?.toLowerCase().includes('signups not allowed')
+        ? 'Pendaftaran lewat Google sedang dimatikan di server, sehingga akun Anda ' +
+          'tidak dapat ditautkan. Hubungi pengurus.'
+        : text ?? 'Gagal masuk dengan penyedia tersebut',
     )
     window.history.replaceState(null, '', window.location.pathname)
   }, [])

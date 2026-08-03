@@ -67,7 +67,9 @@ These are the rules that distinguish correct code from code that merely runs.
 
 An auth account is not access. `handle_new_user` creates profiles `is_active = false`; the access token hook maps an inactive or missing profile to the role **`none`**, whose `role_rank` is 0 — below `viewer`. Every read policy requires at least `has_min_role('viewer')`, and the definer-rights objects (`donors_masked_v`, `donations_public_v`, `rpc_dashboard_summary`, `rpc_fund_balance_report`) carry that check internally since RLS does not apply to them.
 
-This exists because Google sign-in lets anyone with a Google account reach the auth endpoint. Without the gate, invite-only would rest solely on GoTrue's signup toggle, and flipping it would expose the org's financial aggregates and masked donor names to strangers. Do not add a policy with `using (true)` — that reintroduces the hole.
+This is also what makes Google sign-in workable at all: GoTrue rejects an unlinked OAuth identity as a signup when signups are disabled — even for an email that already has an account — so Google needs `enable_signup = true`, and the gate is what keeps that safe. `role === 'none'` renders `PendingApproval` rather than redirecting, since there is no page such an account may see.
+
+The gate exists because Google sign-in lets anyone with a Google account reach the auth endpoint. Without the gate, invite-only would rest solely on GoTrue's signup toggle, and flipping it would expose the org's financial aggregates and masked donor names to strangers. Do not add a policy with `using (true)` — that reintroduces the hole.
 
 ## Domain rules that are easy to get wrong
 

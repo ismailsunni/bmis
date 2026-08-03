@@ -1,4 +1,8 @@
-export type UserRole = 'viewer' | 'amil' | 'auditor' | 'finance' | 'super_admin'
+/**
+ * 'none' is what the access token hook emits for an account with no profile or
+ * one not yet activated. It ranks below viewer and reaches no data at all.
+ */
+export type UserRole = 'none' | 'viewer' | 'amil' | 'auditor' | 'finance' | 'super_admin'
 export type DonorType = 'individual' | 'organization' | 'anonymous'
 export type PaymentMethod = 'cash' | 'transfer' | 'qris' | 'ewallet' | 'in_kind'
 export type DonationStatus = 'draft' | 'pending' | 'verified' | 'rejected' | 'voided'

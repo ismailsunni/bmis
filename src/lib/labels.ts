@@ -9,6 +9,7 @@ export const roleLabels: Record<UserRole, string> = {
   amil: 'Amil',
   auditor: 'Dewan Pengawas',
   viewer: 'Relawan',
+  none: 'Belum diaktifkan',
 }
 
 export const donationStatusLabels: Record<DonationStatus, string> = {

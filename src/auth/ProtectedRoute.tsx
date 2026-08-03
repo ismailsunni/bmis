@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from './AuthProvider'
+import { PendingApproval } from './PendingApproval'
 import type { UserRole } from '@/types/db'
 
 /**
@@ -21,6 +22,9 @@ export function ProtectedRoute({
     )
   }
   if (!session) return <Navigate to="/masuk" state={{ from: location }} replace />
+  // Not a redirect: there is no page this account may see, so sending it to the
+  // dashboard would only loop.
+  if (role === 'none') return <PendingApproval />
   if (allow && !allow(role)) return <Navigate to="/" replace />
   return <>{children}</>
 }
