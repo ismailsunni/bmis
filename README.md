@@ -47,6 +47,33 @@ screen (which calls the `invite-user` Edge Function).
 
 Run one unit test file: `npx vitest run src/lib/format.test.ts`
 
+## Deployment
+
+Pushes to `main` run typecheck, lint, unit tests and the service-role guard,
+then build and publish to GitHub Pages
+(`.github/workflows/deploy.yml`). Pull requests run the checks without
+deploying.
+
+Two repository secrets are required, under **Settings → Secrets and variables →
+Actions**:
+
+| Secret | Value |
+|---|---|
+| `VITE_SUPABASE_URL` | your project URL |
+| `VITE_SUPABASE_ANON_KEY` | the anon key |
+
+The anon key is public by design — RLS is the security boundary — but it lives
+in secrets so it is masked in build logs and can be rotated without a commit.
+Without them the deployed app renders a configuration notice rather than a
+blank page.
+
+Also set **Settings → Pages → Source** to *GitHub Actions*, and add the Pages
+URL to Supabase **Auth → URL Configuration** as the site URL and a redirect
+URL, or magic links and invitations will bounce.
+
+Pages serves from `/<repo>/`, so the build takes its base path from the repo
+name and ships `index.html` as `404.html` to let the SPA resolve deep links.
+
 ## Security model
 
 The anon key is in the bundle and must be assumed public, so:
