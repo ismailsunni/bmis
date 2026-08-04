@@ -44,7 +44,7 @@ These are the rules that distinguish correct code from code that merely runs.
 2. **Never put the service-role key in client code.** CI greps the bundle for it.
 3. **Roles come from the JWT** — and the client must read the _same_ claim. `session.user.app_metadata` is not it: that mirrors `auth.users.raw_app_meta_data`, which the access token hook never writes, so a role set only in `profiles` shows as `viewer` in React while RLS sees the real one. `AuthProvider` decodes `session.access_token` instead, and surfaces a banner when the claim is missing rather than silently degrading.
    Policies read `auth.jwt() -> 'app_metadata' ->> 'user_role'` via `public.current_role()` / `public.has_min_role(text)`. Adding a per-row lookup to `profiles` in a policy is a performance regression on dashboard queries.
-4. **Separation of duties is a DB check**, not UI logic: `created_by <> verified_by` on donations and distributions. `super_admin` may override only with an audited reason.
+4. **Separation of duties is a DB check**, not UI logic: `created_by <> verified_by` on donations and distributions. **Who may override** is also a DB rule — `guard_sod_override()` restricts setting `sod_override_reason` to `super_admin` and `finance`, requires that the approver really is the creator, and demands at least 10 characters. Before that trigger existed the rule lived only in the RPCs, so a finance user could self-verify with a direct PostgREST update; with a public anon key that was reachable with curl. Any rule that only an RPC enforces is not enforced.
 5. **`viewer` never queries base tables.** It reads masked views (`donations_public_v`, `donors_masked_v`) and the dashboard RPC; base-table SELECT policies exclude it entirely. See the departures note below for why those two views are definer-rights.
 6. **Nothing is hard-deleted.** Donations are _voided_, records are soft-deleted via `deleted_at`. `audit_log` is append-only — no UPDATE/DELETE policy exists for any role.
 7. **Only `status = 'verified'` donations count** toward balances, dashboard figures, and reports.
@@ -101,7 +101,7 @@ The gate exists because Google sign-in lets anyone with a Google account reach t
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 93 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 102 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 

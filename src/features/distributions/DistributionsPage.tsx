@@ -48,7 +48,7 @@ export function DistributionsPage() {
   // Mirrors the donations rule: the requester cannot approve their own request,
   // and a super_admin may only override it with a recorded reason.
   const isOwn = (r: DistributionRow) => r.requested_by === user?.id
-  const canOverride = role === 'super_admin'
+  const canOverride = can.overrideSeparationOfDuties(role)
   const reject = useRpc<{ p_id: string; p_reason: string }>('rpc_reject_distribution', [
     'distributions',
   ])
@@ -173,9 +173,9 @@ export function DistributionsPage() {
         open={!!overriding}
         title={`Setujui pengajuan sendiri — ${overriding?.ref_no ?? ''}`}
         description={
-          'Penyaluran ini Anda ajukan sendiri. Sebagai pengurus inti Anda boleh tetap ' +
-          'menyetujuinya, namun alasannya wajib dicatat karena menerobos aturan ' +
-          'pemisahan tugas.'
+          'Penyaluran ini Anda ajukan sendiri. Sebagai ketua atau bendahara Anda boleh ' +
+          'tetap menyetujuinya, namun alasannya wajib dicatat karena menerobos aturan ' +
+          'pemisahan tugas. Tuliskan alasan yang jelas, minimal 10 karakter.'
         }
         label="Alasan menerobos pemisahan tugas"
         confirmLabel="Setujui"

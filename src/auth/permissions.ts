@@ -38,6 +38,12 @@ export const can = {
   managePrograms: (r: UserRole) => r === 'finance' || r === 'super_admin',
   manageAccounts: (r: UserRole) => r === 'finance' || r === 'super_admin',
   lockPeriod: (r: UserRole) => r === 'finance' || r === 'super_admin',
+  /**
+   * Bypassing separation of duties — verifying or approving your own entry.
+   * Mirrors public.guard_sod_override(), which enforces the same list on the
+   * table itself so a direct API call cannot get around it.
+   */
+  overrideSeparationOfDuties: (r: UserRole) => r === 'finance' || r === 'super_admin',
   readAuditLog: (r: UserRole) => hasMinRole(r, 'auditor'),
   manageUsers: (r: UserRole) => r === 'super_admin',
   manageSettings: (r: UserRole) => r === 'super_admin',

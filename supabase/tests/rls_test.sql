@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(93);
+select plan(102);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -273,12 +273,29 @@ select '55555555-5555-5555-5555-555555555555', tests.ref('sedekah'), tests.ref('
        500000, 'cash', true, 'pending', tests.uid('fin');
 select throws_ok(
   $$ select public.rpc_verify_donation('55555555-5555-5555-5555-555555555555') $$,
-  '42501', null, 'finance cannot verify a donation they created themselves');
+  '42501', null, 'finance cannot silently verify a donation they created themselves');
 select throws_ok(
   $$ update public.donations
        set status = 'verified', verified_by = tests.uid('fin'), verified_at = now()
      where id = '55555555-5555-5555-5555-555555555555' $$,
   '23514', null, 'the separation-of-duties rule is a table constraint, not just UI');
+
+-- ketua and bendahara may both override, but only by saying why
+select lives_ok(
+  $$ select public.rpc_verify_donation('55555555-5555-5555-5555-555555555555',
+       'bendahara menerima tunai langsung di kegiatan') $$,
+  'finance may override separation of duties with a stated reason');
+select is(
+  (select sod_override_reason from public.donations
+   where id = '55555555-5555-5555-5555-555555555555'),
+  'bendahara menerima tunai langsung di kegiatan',
+  'the reason is stored on the donation, not only in the log');
+
+-- a reason attached to a normal approval would disarm the constraint later
+select throws_ok(
+  $$ update public.donations set sod_override_reason = 'alasan yang panjang cukup'
+     where id = '22222222-2222-2222-2222-222222222222' $$,
+  '23514', null, 'an override reason is refused unless approver and creator match');
 select tests.logout();
 
 -- super_admin may override the rule, but only by recording why
@@ -375,6 +392,58 @@ select tests.login(tests.uid('fin'), 'finance');
 select throws_ok(
   $$ select public.rpc_approve_distribution('99999999-9999-9999-9999-999999999999') $$,
   '23514', null, 'a distribution exceeding the fund balance is blocked');
+select tests.logout();
+
+-- ============================== 10b. authority to override separation of duties
+-- The rule used to live only in the RPCs, so a finance user could bypass them
+-- with a direct update and self-verify. It is now enforced on the table, which
+-- is what makes the role list below actually mean something.
+select tests.login(tests.uid('amil1'), 'amil');
+insert into public.donations (id, fund_type_id, account_id, amount, payment_method,
+                              is_anonymous, status, created_by)
+select 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', tests.ref('sedekah'), tests.ref('acct'),
+       125000, 'cash', true, 'pending', tests.uid('amil1');
+-- an amil has no update path to verified_by at all, with or without a reason
+select throws_ok(
+  $$ update public.donations
+       set status = 'verified', verified_by = tests.uid('amil1'), verified_at = now(),
+           sod_override_reason = 'saya sendiri saja yang bertugas hari ini'
+     where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  null, null, 'an amil cannot override separation of duties');
+select tests.logout();
+
+select tests.login(tests.uid('audit'), 'auditor');
+update public.donations
+   set sod_override_reason = 'auditor mencoba menerobos aturan ini'
+ where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+select is(
+  (select sod_override_reason from public.donations
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+  null, 'an auditor cannot record an override reason');
+select tests.logout();
+
+select tests.login(tests.uid('fin'), 'finance');
+-- verifying somebody else's entry is the normal path: no reason, and none stored
+select lives_ok(
+  $$ select public.rpc_verify_donation('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') $$,
+  'verifying another user entry needs no reason at all');
+select is(
+  (select sod_override_reason from public.donations
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+  null, 'a normal verification records no override reason');
+
+-- the reason requirements apply only where the override actually applies
+insert into public.donations (id, fund_type_id, account_id, amount, payment_method,
+                              is_anonymous, status, created_by)
+select 'cccccccc-cccc-cccc-cccc-cccccccccccc', tests.ref('sedekah'), tests.ref('acct'),
+       90000, 'cash', true, 'pending', tests.uid('fin');
+select throws_ok(
+  $$ select public.rpc_verify_donation('cccccccc-cccc-cccc-cccc-cccccccccccc', 'ya') $$,
+  '23514', null, 'a one-word override reason is refused as worthless for an audit trail');
+select lives_ok(
+  $$ select public.rpc_verify_donation('cccccccc-cccc-cccc-cccc-cccccccccccc',
+       'bendahara bertugas sendiri pada kegiatan Jumat') $$,
+  'bendahara may override with a reason that actually explains it');
 select tests.logout();
 
 -- ============================================================ 9. period locks

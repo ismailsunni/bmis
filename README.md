@@ -154,9 +154,11 @@ The anon key is in the bundle and must be assumed public, so:
 - Every table has RLS enabled and is default-deny.
 - Roles are delivered as a JWT claim (`app_metadata.user_role`) by a custom
   access token hook, so no policy joins `profiles` per row.
-- Separation of duties (`created_by <> verified_by`) is a table constraint. A
-  `super_admin` may override it only by recording a reason, which lands in the
-  audit log and on the row.
+- Separation of duties (`created_by <> verified_by`) is a table constraint, and
+  the authority to override it is a trigger: only `super_admin` and `finance` may
+  set `sod_override_reason`, the approver must actually be the creator, and the
+  reason must be substantive. Enforced on the table, so it holds for a direct API
+  call as much as for the UI.
 - `viewer` has no SELECT on any base table; it reads masked views and an
   aggregate-only dashboard RPC.
 - Donations are never deleted — they are voided. `audit_log` has no write
@@ -165,7 +167,7 @@ The anon key is in the bundle and must be assumed public, so:
   it.
 
 `supabase/tests/rls_test.sql` asserts all of the above for each of the five
-roles — 93 assertions covering both allowed and denied operations. It must pass
+roles — 102 assertions covering both allowed and denied operations. It must pass
 before release.
 
 ## Sign-in and membership

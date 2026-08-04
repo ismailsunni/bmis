@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
+import { can } from '@/auth/permissions'
 import { useDonations, useRpc } from '@/lib/queries'
 import { ReasonDialog } from '@/components/ReasonDialog'
 import { signedUrl } from '@/lib/storage'
@@ -44,7 +45,7 @@ export function VerificationQueue() {
   // but only by stating why — so those rows take the reason dialog instead of
   // the plain button, and everyone else simply cannot act on them.
   const isOwn = (row: DonationRow) => row.created_by === user?.id
-  const canOverride = role === 'super_admin'
+  const canOverride = can.overrideSeparationOfDuties(role)
 
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -109,9 +110,9 @@ export function VerificationQueue() {
         open={!!overriding}
         title={`Verifikasi entri sendiri — ${overriding?.receipt_no ?? ''}`}
         description={
-          'Donasi ini Anda catat sendiri. Sebagai pengurus inti Anda boleh tetap ' +
+          'Donasi ini Anda catat sendiri. Sebagai ketua atau bendahara Anda boleh tetap ' +
           'memverifikasinya, namun alasannya wajib dicatat karena menerobos aturan ' +
-          'pemisahan tugas.'
+          'pemisahan tugas. Tuliskan alasan yang jelas, minimal 10 karakter.'
         }
         label="Alasan menerobos pemisahan tugas"
         confirmLabel="Verifikasi"
