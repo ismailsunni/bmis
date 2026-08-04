@@ -7,6 +7,7 @@ import { can } from '@/auth/permissions'
 import { useAccounts, useDistributions, useFundTypes, usePrograms, useRpc } from '@/lib/queries'
 import { uploadProof } from '@/lib/storage'
 import { PageHeader } from '@/components/AppShell'
+import { ReasonDialog } from '@/components/ReasonDialog'
 import { Pagination } from '@/components/Pagination'
 import {
   Badge,
@@ -32,14 +33,22 @@ const statusTone: Record<DistributionStatus, 'neutral' | 'success' | 'warning' |
 }
 
 export function DistributionsPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
   const [disbursing, setDisbursing] = useState<DistributionRow | null>(null)
+  const [overriding, setOverriding] = useState<DistributionRow | null>(null)
   const { data, isLoading, error } = useDistributions(status || undefined, page)
 
-  const approve = useRpc<{ p_id: string }>('rpc_approve_distribution', ['distributions'])
+  const approve = useRpc<{ p_id: string; p_override_reason?: string }>('rpc_approve_distribution', [
+    'distributions',
+  ])
+
+  // Mirrors the donations rule: the requester cannot approve their own request,
+  // and a super_admin may only override it with a recorded reason.
+  const isOwn = (r: DistributionRow) => r.requested_by === user?.id
+  const canOverride = role === 'super_admin'
   const reject = useRpc<{ p_id: string; p_reason: string }>('rpc_reject_distribution', [
     'distributions',
   ])
@@ -121,9 +130,17 @@ export function DistributionsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => approve.mutate({ p_id: r.id })}
+                              disabled={isOwn(r) && !canOverride}
+                              title={
+                                isOwn(r) && !canOverride
+                                  ? 'Anda yang mengajukan; mintalah pengurus lain menyetujuinya'
+                                  : undefined
+                              }
+                              onClick={() =>
+                                isOwn(r) ? setOverriding(r) : approve.mutate({ p_id: r.id })
+                              }
                             >
-                              Setujui
+                              {isOwn(r) ? 'Setujui (alasan)' : 'Setujui'}
                             </Button>
                             <Button
                               size="sm"
@@ -151,6 +168,25 @@ export function DistributionsPage() {
             <Pagination page={page} count={data.count} onChange={setPage} />
           </>
         ))}
+
+      <ReasonDialog
+        open={!!overriding}
+        title={`Setujui pengajuan sendiri — ${overriding?.ref_no ?? ''}`}
+        description={
+          'Penyaluran ini Anda ajukan sendiri. Sebagai pengurus inti Anda boleh tetap ' +
+          'menyetujuinya, namun alasannya wajib dicatat karena menerobos aturan ' +
+          'pemisahan tugas.'
+        }
+        label="Alasan menerobos pemisahan tugas"
+        confirmLabel="Setujui"
+        busy={approve.isPending}
+        error={approve.error}
+        onCancel={() => setOverriding(null)}
+        onConfirm={async (text) => {
+          await approve.mutateAsync({ p_id: overriding!.id, p_override_reason: text })
+          setOverriding(null)
+        }}
+      />
 
       <DistributionForm open={formOpen} onClose={() => setFormOpen(false)} />
       <DisburseDialog row={disbursing} onClose={() => setDisbursing(null)} />

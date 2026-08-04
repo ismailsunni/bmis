@@ -184,6 +184,16 @@ sebagai peringatan di dasbor.
 > bendahara yang menerima uangnya, mintalah bendahara lain atau ketua yang
 > memverifikasi.
 
+**Bila Anda ketua dan mencatat sendiri donasinya**, tombolnya berubah menjadi
+**Verifikasi dengan alasan**. Sistem meminta alasan singkat, lalu alasan itu
+tersimpan pada donasi dan di log audit. Ini jalan keluar untuk keadaan
+tertentu, bukan kebiasaan: selama pengurus masih satu orang, setiap entri akan
+menempuh jalur ini dan seluruhnya tercatat. Begitu ada bendahara kedua,
+undanglah lewat menu Pengguna agar alur normal berjalan.
+
+Verifikasi massal sengaja tidak dapat dipakai untuk entri sendiri — satu batch
+tidak punya tempat untuk mencatat alasan per baris.
+
 ---
 
 ## 5. Koreksi dan pembatalan

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/auth/AuthProvider'
 import { useDonations, useRpc } from '@/lib/queries'
+import { ReasonDialog } from '@/components/ReasonDialog'
 import { signedUrl } from '@/lib/storage'
 import { PageHeader } from '@/components/AppShell'
 import {
@@ -24,15 +26,25 @@ import type { DonationRow } from '@/types/db'
  */
 export function VerificationQueue() {
   const qc = useQueryClient()
+  const { user, role } = useAuth()
   const { data, isLoading, error } = useDonations({ status: 'pending' })
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [rejecting, setRejecting] = useState<DonationRow | null>(null)
+  const [overriding, setOverriding] = useState<DonationRow | null>(null)
   const [reason, setReason] = useState('')
 
-  const verify = useRpc<{ p_id: string }>('rpc_verify_donation', ['donations'])
+  const verify = useRpc<{ p_id: string; p_override_reason?: string }>('rpc_verify_donation', [
+    'donations',
+  ])
   const reject = useRpc<{ p_id: string; p_reason: string }>('rpc_reject_donation', ['donations'])
 
   const rows = data?.rows ?? []
+
+  // The creator of an entry may not verify it. A super_admin can override that,
+  // but only by stating why — so those rows take the reason dialog instead of
+  // the plain button, and everyone else simply cannot act on them.
+  const isOwn = (row: DonationRow) => row.created_by === user?.id
+  const canOverride = role === 'super_admin'
 
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -44,7 +56,8 @@ export function VerificationQueue() {
 
   const verifyBatch = async () => {
     // Sequential on purpose: each verification re-checks separation of duties
-    // and the caller needs to know exactly which one failed.
+    // and the caller needs to know exactly which one failed. Own entries are
+    // excluded from selection, since a batch has nowhere to put a reason.
     for (const id of selected) {
       await verify.mutateAsync({ p_id: id }).catch(() => null)
     }
@@ -80,15 +93,36 @@ export function VerificationQueue() {
             row={row}
             checked={selected.has(row.id)}
             onToggle={() => toggle(row.id)}
-            onVerify={() => verify.mutate({ p_id: row.id })}
+            onVerify={() => (isOwn(row) ? setOverriding(row) : verify.mutate({ p_id: row.id }))}
             onReject={() => {
               setRejecting(row)
               setReason('')
             }}
+            own={isOwn(row)}
+            canOverride={canOverride}
             busy={verify.isPending}
           />
         ))}
       </div>
+
+      <ReasonDialog
+        open={!!overriding}
+        title={`Verifikasi entri sendiri — ${overriding?.receipt_no ?? ''}`}
+        description={
+          'Donasi ini Anda catat sendiri. Sebagai pengurus inti Anda boleh tetap ' +
+          'memverifikasinya, namun alasannya wajib dicatat karena menerobos aturan ' +
+          'pemisahan tugas.'
+        }
+        label="Alasan menerobos pemisahan tugas"
+        confirmLabel="Verifikasi"
+        busy={verify.isPending}
+        error={verify.error}
+        onCancel={() => setOverriding(null)}
+        onConfirm={async (text) => {
+          await verify.mutateAsync({ p_id: overriding!.id, p_override_reason: text })
+          setOverriding(null)
+        }}
+      />
 
       <Modal
         open={!!rejecting}
@@ -126,6 +160,8 @@ function QueueItem({
   onToggle,
   onVerify,
   onReject,
+  own,
+  canOverride,
   busy,
 }: {
   row: DonationRow
@@ -133,6 +169,8 @@ function QueueItem({
   onToggle: () => void
   onVerify: () => void
   onReject: () => void
+  own: boolean
+  canOverride: boolean
   busy: boolean
 }) {
   const [proof, setProof] = useState<string | null>(null)
@@ -157,8 +195,10 @@ function QueueItem({
           type="checkbox"
           checked={checked}
           onChange={onToggle}
-          className="mt-1 h-4 w-4 shrink-0"
+          disabled={own}
+          className="mt-1 h-4 w-4 shrink-0 disabled:opacity-40"
           aria-label={`Pilih ${row.receipt_no}`}
+          title={own ? 'Entri sendiri tidak dapat diverifikasi secara massal' : undefined}
         />
 
         <div className="min-w-0 flex-1">
@@ -180,13 +220,20 @@ function QueueItem({
           </dl>
           {row.notes && <p className="mt-2 text-sm text-slate-500">{row.notes}</p>}
 
-          <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={onVerify} disabled={busy}>
-              Verifikasi
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={onVerify} disabled={busy || (own && !canOverride)}>
+              {own ? 'Verifikasi dengan alasan' : 'Verifikasi'}
             </Button>
             <Button size="sm" variant="secondary" onClick={onReject}>
               Tolak
             </Button>
+            {own && (
+              <span className="text-xs text-amber-700 dark:text-amber-400">
+                {canOverride
+                  ? 'Anda yang mencatat entri ini — alasan wajib dicatat.'
+                  : 'Anda yang mencatat entri ini; mintalah pengurus lain memverifikasinya.'}
+              </span>
+            )}
           </div>
         </div>
 
