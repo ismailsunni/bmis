@@ -48,7 +48,7 @@ const NAV: NavItem[] = [
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { role, user, signOut, roleClaimMissing } = useAuth()
+  const { role, user, fullName, signOut, roleClaimMissing } = useAuth()
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const items = NAV.filter((i) => !i.allow || i.allow(role))
@@ -106,7 +106,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         {nav}
 
         <div className="mt-4 border-t border-slate-200 px-2 pt-3 dark:border-slate-700">
-          <p className="truncate text-sm font-medium">{user?.email}</p>
+          {fullName && <p className="truncate text-sm font-semibold">{fullName}</p>}
+          <p className="truncate text-xs text-slate-500">{user?.email}</p>
           <p className="mb-2 text-xs text-slate-500">{roleLabels[role]}</p>
           <button
             onClick={signOut}
