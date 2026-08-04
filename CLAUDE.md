@@ -101,7 +101,7 @@ The gate exists because Google sign-in lets anyone with a Google account reach t
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 102 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 106 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 

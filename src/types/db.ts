@@ -83,6 +83,8 @@ export interface Donor {
   merged_into_id: string | null
   deleted_at: string | null
   created_at: string
+  /** Needed to decide whether an amil may edit this donor. */
+  created_by: string | null
 }
 
 export interface Donation {

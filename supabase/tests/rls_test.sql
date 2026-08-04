@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(102);
+select plan(106);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -392,6 +392,40 @@ select tests.login(tests.uid('fin'), 'finance');
 select throws_ok(
   $$ select public.rpc_approve_distribution('99999999-9999-9999-9999-999999999999') $$,
   '23514', null, 'a distribution exceeding the fund balance is blocked');
+select tests.logout();
+
+-- ============================================ 9b. editing a donor
+-- The donor editor is built directly on this policy, so it is worth pinning.
+select tests.login(tests.uid('amil1'), 'amil');
+update public.donors set city = 'Yogyakarta'
+ where id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (select city from public.donors where id = '11111111-1111-1111-1111-111111111111'),
+  'Yogyakarta', 'an amil can edit a donor they created');
+select tests.logout();
+
+select tests.login(tests.uid('amil2'), 'amil');
+update public.donors set city = 'Diubah amil lain'
+ where id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (select city from public.donors where id = '11111111-1111-1111-1111-111111111111'),
+  'Yogyakarta', 'an amil cannot edit a donor somebody else created');
+select tests.logout();
+
+select tests.login(tests.uid('fin'), 'finance');
+update public.donors set city = 'Sleman'
+ where id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (select city from public.donors where id = '11111111-1111-1111-1111-111111111111'),
+  'Sleman', 'finance can edit any donor');
+select tests.logout();
+
+select tests.login(tests.uid('audit'), 'auditor');
+update public.donors set city = 'Diubah auditor'
+ where id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (select city from public.donors where id = '11111111-1111-1111-1111-111111111111'),
+  'Sleman', 'an auditor cannot edit a donor');
 select tests.logout();
 
 -- ============================== 10b. authority to override separation of duties

@@ -216,6 +216,23 @@ Membatalkan (_void_) selalu memerlukan alasan. Donasi yang dibatalkan tetap
 tersimpan lengkap dengan alasannya dan berhenti dihitung dalam saldo — inilah
 sebabnya tidak ada tombol hapus di sistem ini.
 
+### Mengubah data donatur
+
+Buka **Donatur**, lalu tekan ikon pensil pada barisnya — atau buka halaman
+donatur dan tekan **Ubah data**. Nama, telepon, alamat, NPWP, tag, dan penanda
+donatur tetap semuanya dapat diperbaiki.
+
+Beberapa hal yang perlu diketahui:
+
+- **Kode donatur tidak dapat diubah.** Kode itu sudah tercantum pada kwitansi
+  yang terbit, jadi mengubahnya akan memutus jejaknya.
+- **Amil hanya dapat mengubah donatur yang ia daftarkan sendiri.** Bendahara dan
+  ketua dapat mengubah siapa pun. Ini ditegakkan basis data, bukan hanya tombol.
+- **Nomor telepon harus unik.** Bila nomor sudah dipakai donatur lain, sistem
+  memberi tahu — dan itu biasanya tanda keduanya orang yang sama, sehingga yang
+  Anda perlukan adalah **Gabungkan**, bukan mengubah nomornya.
+- Setiap perubahan tercatat di log audit beserta nilai sebelum dan sesudahnya.
+
 Donatur ganda digabungkan di **Donatur → Gabungkan**. Seluruh donasi berpindah
 ke donatur yang dipertahankan, data yang digabung diarsipkan, dan alasannya
 tercatat.

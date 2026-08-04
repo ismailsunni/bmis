@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, GitMerge } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
+import { Plus, GitMerge, Pencil } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
 import { useDonors, useRpc } from '@/lib/queries'
+import { DonorForm } from './DonorForm'
 import { PageHeader } from '@/components/AppShell'
 import { Pagination } from '@/components/Pagination'
 import {
@@ -16,19 +15,19 @@ import {
   Field,
   Input,
   Modal,
-  Select,
   Spinner,
   Textarea,
 } from '@/components/ui'
 import { formatDate } from '@/lib/format'
 import { donorTypeLabels } from '@/lib/labels'
-import type { DonorType } from '@/types/db'
+import type { Donor } from '@/types/db'
 
 export function DonorsPage() {
   const { role, user } = useAuth()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<Donor | null>(null)
   const [mergeOpen, setMergeOpen] = useState(false)
   const { data, isLoading, error } = useDonors(search, page)
 
@@ -81,6 +80,7 @@ export function DonorsPage() {
                     <th>Telepon</th>
                     <th>Kota</th>
                     <th>Terdaftar</th>
+                    <th className="w-10" />
                   </tr>
                 </thead>
                 <tbody>
@@ -97,6 +97,18 @@ export function DonorsPage() {
                       <td>{d.phone ?? '—'}</td>
                       <td>{d.city ?? '—'}</td>
                       <td className="whitespace-nowrap">{formatDate(d.created_at)}</td>
+                      <td>
+                        {can.editDonor(role, d.created_by === user?.id) && (
+                          <button
+                            onClick={() => setEditing(d)}
+                            aria-label={`Ubah ${d.full_name}`}
+                            title="Ubah data donatur"
+                            className="text-slate-400 hover:text-brand-700 dark:hover:text-brand-400"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -106,153 +118,13 @@ export function DonorsPage() {
           </>
         ))}
 
-      <DonorForm open={formOpen} onClose={() => setFormOpen(false)} createdBy={user!.id} />
+      <DonorForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <DonorForm open={!!editing} donor={editing} onClose={() => setEditing(null)} />
       <MergeDialog open={mergeOpen} onClose={() => setMergeOpen(false)} />
     </>
   )
 }
 
-function DonorForm({
-  open,
-  onClose,
-  createdBy,
-}: {
-  open: boolean
-  onClose: () => void
-  createdBy: string
-}) {
-  const qc = useQueryClient()
-  const [form, setForm] = useState({
-    full_name: '',
-    donor_type: 'individual' as DonorType,
-    nik: '',
-    npwp: '',
-    phone: '',
-    email: '',
-    address: '',
-    city: '',
-    province: '',
-    is_recurring: false,
-    tags: '',
-  })
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('donors').insert({
-        ...form,
-        nik: form.nik || null,
-        npwp: form.npwp || null,
-        phone: form.phone || null,
-        email: form.email || null,
-        tags: form.tags
-          ? form.tags
-              .split(',')
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
-        created_by: createdBy,
-      })
-      if (error) throw new Error(error.message)
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['donors'] })
-      onClose()
-    },
-  })
-
-  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Donatur baru"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.full_name}>
-            Simpan
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-3">
-        <Field label="Nama lengkap" required>
-          <Input value={form.full_name} onChange={(e) => set({ full_name: e.target.value })} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Tipe">
-            <Select
-              value={form.donor_type}
-              onChange={(e) => set({ donor_type: e.target.value as DonorType })}
-            >
-              {Object.entries(donorTypeLabels).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Telepon" hint="Dipakai untuk mencegah duplikat">
-            <Input
-              inputMode="tel"
-              value={form.phone}
-              onChange={(e) => set({ phone: e.target.value })}
-            />
-          </Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="NIK" hint="Opsional, hanya untuk keperluan resmi">
-            <Input
-              inputMode="numeric"
-              maxLength={16}
-              value={form.nik}
-              onChange={(e) => set({ nik: e.target.value })}
-            />
-          </Field>
-          <Field label="NPWP" hint="Diperlukan untuk Bukti Setor Zakat">
-            <Input value={form.npwp} onChange={(e) => set({ npwp: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="Email">
-          <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />
-        </Field>
-        <Field label="Alamat">
-          <Textarea
-            rows={2}
-            value={form.address}
-            onChange={(e) => set({ address: e.target.value })}
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Kota">
-            <Input value={form.city} onChange={(e) => set({ city: e.target.value })} />
-          </Field>
-          <Field label="Provinsi">
-            <Input value={form.province} onChange={(e) => set({ province: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="Tag" hint="Pisahkan dengan koma, mis. alumni, karyawan_pt_x">
-          <Input value={form.tags} onChange={(e) => set({ tags: e.target.value })} />
-        </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={form.is_recurring}
-            onChange={(e) => set({ is_recurring: e.target.checked })}
-          />
-          Donatur tetap
-        </label>
-        <ErrorNote error={save.error} />
-      </div>
-    </Modal>
-  )
-}
-
-/** Merging keeps every donation and writes the reason to the audit log. */
 function MergeDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [source, setSource] = useState('')
   const [target, setTarget] = useState('')

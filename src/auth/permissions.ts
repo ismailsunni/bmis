@@ -31,6 +31,12 @@ export const can = {
   voidDonation: (r: UserRole) => r === 'finance' || r === 'super_admin',
   readDonorPII: (r: UserRole) => r !== 'viewer',
   manageDonors: (r: UserRole) => canWrite(r),
+  /**
+   * Mirrors the donors_update policy: finance and above may edit anyone, an amil
+   * only the donors they created themselves.
+   */
+  editDonor: (r: UserRole, own: boolean) =>
+    r === 'finance' || r === 'super_admin' || (r === 'amil' && own),
   mergeDonors: (r: UserRole) => r === 'finance' || r === 'super_admin',
   manageBeneficiaries: (r: UserRole) => canWrite(r),
   requestDistribution: (r: UserRole) => canWrite(r),

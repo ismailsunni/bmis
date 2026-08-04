@@ -46,6 +46,20 @@ describe('permissions', () => {
     expect(can.verifyDonation('super_admin')).toBe(true)
   })
 
+  it('lets an amil edit only the donors they created', () => {
+    // mirrors the donors_update policy: own rows for an amil, anyone for finance
+    expect(can.editDonor('amil', true)).toBe(true)
+    expect(can.editDonor('amil', false)).toBe(false)
+    expect(can.editDonor('finance', false)).toBe(true)
+    expect(can.editDonor('super_admin', false)).toBe(true)
+  })
+
+  it('never lets a read-only role edit a donor', () => {
+    expect(can.editDonor('auditor', true)).toBe(false)
+    expect(can.editDonor('viewer', true)).toBe(false)
+    expect(can.editDonor('none', true)).toBe(false)
+  })
+
   it('restricts user management to super_admin', () => {
     expect(can.manageUsers('finance')).toBe(false)
     expect(can.manageUsers('super_admin')).toBe(true)

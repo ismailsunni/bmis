@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { FileText } from 'lucide-react'
+import { FileText, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/lib/queries'
+import { useAuth } from '@/auth/AuthProvider'
+import { can } from '@/auth/permissions'
+import { DonorForm } from './DonorForm'
 import { PageHeader } from '@/components/AppShell'
 import { Badge, Button, Card, CardTitle, ErrorNote, Spinner } from '@/components/ui'
 import { formatDate, formatHijri, formatIDR } from '@/lib/format'
@@ -24,6 +28,8 @@ interface Statement {
 
 export function DonorDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { role, user } = useAuth()
+  const [editing, setEditing] = useState(false)
   const { data: settings } = useSettings()
   const year = new Date().getFullYear()
 
@@ -83,9 +89,16 @@ export function DonorDetailPage() {
         title={donor?.full_name ?? 'Donatur'}
         subtitle={donor?.donor_code}
         action={
-          <Button size="sm" variant="secondary" onClick={printStatement} disabled={!data}>
-            <FileText size={16} /> Cetak BSZ {year}
-          </Button>
+          <>
+            {donor && can.editDonor(role, donor.created_by === user?.id) && (
+              <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+                <Pencil size={16} /> Ubah data
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" onClick={printStatement} disabled={!data}>
+              <FileText size={16} /> Cetak BSZ {year}
+            </Button>
+          </>
         }
       />
 
@@ -160,6 +173,8 @@ export function DonorDetailPage() {
           </Card>
         </div>
       )}
+
+      <DonorForm open={editing} donor={donor} onClose={() => setEditing(false)} />
 
       <p className="mt-4 text-sm">
         <Link to="/donatur" className="text-brand-700 hover:underline dark:text-brand-400">
