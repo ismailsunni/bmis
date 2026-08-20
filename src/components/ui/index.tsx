@@ -130,13 +130,9 @@ const tones = {
   info: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
 } as const
 
-export function Badge({
-  tone = 'neutral',
-  children,
-}: {
-  tone?: keyof typeof tones
-  children: ReactNode
-}) {
+export type BadgeTone = keyof typeof tones
+
+export function Badge({ tone = 'neutral', children }: { tone?: BadgeTone; children: ReactNode }) {
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', tones[tone])}>
       {children}

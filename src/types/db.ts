@@ -163,9 +163,14 @@ export interface Distribution {
   requested_by: string
   approved_by: string | null
   approved_at: string | null
+  disbursed_by: string | null
+  disbursed_at: string | null
+  reject_reason: string | null
+  sod_override_reason: string | null
   proof_url: string | null
   recipient_signature_url: string | null
   notes: string | null
+  created_by: string
   created_at: string
 }
 

@@ -15,6 +15,7 @@ import { DonorsPage } from '@/features/donors/DonorsPage'
 import { DonorDetailPage } from '@/features/donors/DonorDetailPage'
 import { BeneficiariesPage } from '@/features/beneficiaries/BeneficiariesPage'
 import { DistributionsPage } from '@/features/distributions/DistributionsPage'
+import { DistributionDetailPage } from '@/features/distributions/DistributionDetailPage'
 import { ProgramsPage } from '@/features/programs/ProgramsPage'
 import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
@@ -53,6 +54,7 @@ export default function App() {
       <Route path="/donatur/:id" element={shell(<DonorDetailPage />, can.readDonorPII)} />
       <Route path="/mustahik" element={shell(<BeneficiariesPage />, can.readDonorPII)} />
       <Route path="/penyaluran" element={shell(<DistributionsPage />)} />
+      <Route path="/penyaluran/:id" element={shell(<DistributionDetailPage />)} />
       <Route path="/program" element={shell(<ProgramsPage />)} />
       <Route path="/rekening" element={shell(<AccountsPage />, can.manageAccounts)} />
       <Route path="/laporan" element={shell(<ReportsPage />)} />

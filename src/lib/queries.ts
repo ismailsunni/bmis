@@ -131,6 +131,23 @@ export function useDonation(id: string | undefined) {
   })
 }
 
+/** One distribution for the detail page, with names resolved by distributions_v. */
+export function useDistribution(id: string | undefined) {
+  return useQuery({
+    queryKey: ['distribution', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distributions_v')
+        .select('*')
+        .eq('id', id!)
+        .maybeSingle()
+      if (error) throw new Error(error.message)
+      return data as DistributionRow | null
+    },
+  })
+}
+
 /** The audit trail of a single record, newest first. Auditor and above only. */
 export function useRecordAudit(table: string, id: string | undefined) {
   return useQuery({

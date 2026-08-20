@@ -340,6 +340,19 @@ Setelah disetujui, tekan **Serahkan**, lalu unggah foto penyerahan dan tanda
 tangan penerima. Status menjadi **Tersalurkan** dan barulah dihitung sebagai
 penyaluran dalam laporan.
 
+### 6c. Melihat rincian satu penyaluran
+
+Pada daftar **Penyaluran**, tekan **nomor rujukannya**. Halaman rincian memuat
+penerima beserta asnafnya, sumber dana, bentuk bantuan, dan seluruh jejaknya:
+siapa mengajukan, siapa menyetujui, kapan diserahkan, serta alasan penolakan
+atau alasan penerobosan pemisahan tugas bila ada. Foto penyerahan dan tanda
+tangan penerima tampil di halaman yang sama — inilah bukti yang diperiksa Dewan
+Pengawas, dan mereka juga melihat log audit entri tersebut di sini.
+
+Tombol **Setujui**, **Tolak**, dan **Serahkan** tersedia di halaman ini juga,
+sesuai peran dan status pengajuannya. Halaman ini punya alamat sendiri, jadi
+tautannya dapat dikirim ke pengurus lain.
+
 ---
 
 ## 7. Aturan yang ditegakkan sistem

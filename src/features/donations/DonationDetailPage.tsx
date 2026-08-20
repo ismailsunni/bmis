@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Ban, MessageCircle, Pencil } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { can, donationEditScope } from '@/auth/permissions'
-import { useDonation, useRecordAudit, useRpc, useSettings } from '@/lib/queries'
-import { signedUrl } from '@/lib/storage'
+import { useDonation, useRpc, useSettings } from '@/lib/queries'
 import { PageHeader } from '@/components/AppShell'
 import { ReasonDialog } from '@/components/ReasonDialog'
+import { SignedImage } from '@/components/SignedImage'
+import { RecordAudit, TrailNote as Note, DetailRow as Row } from '@/components/RecordDetail'
 import { Badge, Button, Card, CardTitle, EmptyState, ErrorNote, Spinner } from '@/components/ui'
 import { formatDate, formatDateTime, formatIDR } from '@/lib/format'
 import { donationStatusLabels, paymentMethodLabels } from '@/lib/labels'
@@ -165,9 +166,17 @@ export function DonationDetailPage() {
             )}
           </Card>
 
-          <Proof path={donation.proof_url} />
+          <Card>
+            <CardTitle>Bukti transfer</CardTitle>
+            <SignedImage
+              bucket="donation-proofs"
+              path={donation.proof_url}
+              alt="Bukti transfer"
+              empty="Tidak ada bukti yang diunggah."
+            />
+          </Card>
 
-          {can.readAuditLog(role) && <AuditTrail id={donation.id} />}
+          {can.readAuditLog(role) && <RecordAudit table="donations" id={donation.id} />}
         </div>
       )}
 
@@ -200,85 +209,3 @@ export function DonationDetailPage() {
     </>
   )
 }
-
-function Proof({ path }: { path: string | null }) {
-  const [url, setUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Signed URLs live 60 seconds, so they are fetched per view, never stored.
-    let alive = true
-    signedUrl('donation-proofs', path).then((u) => {
-      if (alive) setUrl(u)
-    })
-    return () => {
-      alive = false
-    }
-  }, [path])
-
-  return (
-    <Card>
-      <CardTitle>Bukti transfer</CardTitle>
-      {!path ? (
-        <p className="text-sm text-slate-400">Tidak ada bukti yang diunggah.</p>
-      ) : url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer">
-          <img
-            src={url}
-            alt="Bukti transfer"
-            className="max-h-64 w-full rounded-lg object-contain"
-          />
-        </a>
-      ) : (
-        <Spinner />
-      )}
-    </Card>
-  )
-}
-
-function AuditTrail({ id }: { id: string }) {
-  const { data } = useRecordAudit('donations', id)
-
-  return (
-    <Card className="lg:col-span-3">
-      <CardTitle>Log audit</CardTitle>
-      {!data?.length ? (
-        <p className="text-sm text-slate-400">Belum ada catatan.</p>
-      ) : (
-        <ul className="space-y-2 text-sm">
-          {data.map((e) => (
-            <li key={e.id} className="border-l-2 border-slate-200 pl-3 dark:border-slate-700">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{e.action}</span>
-                <span className="text-slate-500">{e.actor_role ?? '—'}</span>
-                <span className="text-xs text-slate-400">{formatDateTime(e.created_at)}</span>
-              </div>
-              {e.reason && <p className="text-slate-500">“{e.reason}”</p>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  )
-}
-
-const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex justify-between gap-2">
-    <dt className="shrink-0 text-slate-500">{label}</dt>
-    <dd className="truncate text-right">{value}</dd>
-  </div>
-)
-
-const Note = ({
-  tone,
-  label,
-  children,
-}: {
-  tone: 'warning' | 'danger'
-  label: string
-  children: React.ReactNode
-}) => (
-  <div className="mt-3 text-sm">
-    <Badge tone={tone}>{label}</Badge>
-    <p className="mt-1 text-slate-600 dark:text-slate-300">{children}</p>
-  </div>
-)

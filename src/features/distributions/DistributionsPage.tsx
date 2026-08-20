@@ -1,13 +1,14 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
 import { useAccounts, useDistributions, useFundTypes, usePrograms, useRpc } from '@/lib/queries'
-import { uploadProof } from '@/lib/storage'
 import { PageHeader } from '@/components/AppShell'
 import { ReasonDialog } from '@/components/ReasonDialog'
+import { DisburseDialog } from './DisburseDialog'
 import { Pagination } from '@/components/Pagination'
 import {
   Badge,
@@ -20,14 +21,15 @@ import {
   Select,
   Spinner,
   Textarea,
+  type BadgeTone,
 } from '@/components/ui'
 import { formatDate, formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
 import { asnafLabels, distributionStatusLabels, distributionTypeLabels } from '@/lib/labels'
 import type { Beneficiary, DistributionRow, DistributionStatus, DistributionType } from '@/types/db'
 
-const statusTone: Record<DistributionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
+const statusTone: Record<DistributionStatus, BadgeTone> = {
   requested: 'warning',
-  approved: 'info' as 'neutral',
+  approved: 'info',
   disbursed: 'success',
   rejected: 'danger',
 }
@@ -39,6 +41,7 @@ export function DistributionsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [disbursing, setDisbursing] = useState<DistributionRow | null>(null)
   const [overriding, setOverriding] = useState<DistributionRow | null>(null)
+  const [rejecting, setRejecting] = useState<DistributionRow | null>(null)
   const { data, isLoading, error } = useDistributions(status || undefined, page)
 
   const approve = useRpc<{ p_id: string; p_override_reason?: string }>('rpc_approve_distribution', [
@@ -107,7 +110,11 @@ export function DistributionsPage() {
                 <tbody>
                   {data.rows.map((r) => (
                     <tr key={r.id}>
-                      <td className="font-mono text-xs">{r.ref_no}</td>
+                      <td className="font-mono text-xs">
+                        <Link to={`/penyaluran/${r.id}`} className="hover:underline">
+                          {r.ref_no}
+                        </Link>
+                      </td>
                       <td className="whitespace-nowrap">{formatDate(r.distributed_at)}</td>
                       <td>
                         {r.beneficiary_name ?? r.program_name ?? '—'}
@@ -142,14 +149,7 @@ export function DistributionsPage() {
                             >
                               {isOwn(r) ? 'Setujui (alasan)' : 'Setujui'}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                const reason = window.prompt('Alasan penolakan')
-                                if (reason?.trim()) reject.mutate({ p_id: r.id, p_reason: reason })
-                              }}
-                            >
+                            <Button size="sm" variant="ghost" onClick={() => setRejecting(r)}>
                               Tolak
                             </Button>
                           </>
@@ -185,6 +185,21 @@ export function DistributionsPage() {
         onConfirm={async (text) => {
           await approve.mutateAsync({ p_id: overriding!.id, p_override_reason: text })
           setOverriding(null)
+        }}
+      />
+
+      <ReasonDialog
+        open={!!rejecting}
+        title={`Tolak ${rejecting?.ref_no ?? ''}`}
+        description="Pengajuan yang ditolak tetap tersimpan beserta alasannya."
+        label="Alasan penolakan"
+        confirmLabel="Tolak pengajuan"
+        busy={reject.isPending}
+        error={reject.error}
+        onCancel={() => setRejecting(null)}
+        onConfirm={async (text) => {
+          await reject.mutateAsync({ p_id: rejecting!.id, p_reason: text })
+          setRejecting(null)
         }}
       />
 
@@ -387,76 +402,6 @@ function DistributionForm({ open, onClose }: { open: boolean; onClose: () => voi
         <p className="text-xs text-slate-500">
           Saldo dana diperiksa saat persetujuan; pengajuan yang melebihi saldo akan ditolak.
         </p>
-      </div>
-    </Modal>
-  )
-}
-
-function DisburseDialog({ row, onClose }: { row: DistributionRow | null; onClose: () => void }) {
-  const [proof, setProof] = useState<File | null>(null)
-  const [signature, setSignature] = useState<File | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const disburse = useRpc<{
-    p_id: string
-    p_proof_url: string | null
-    p_signature_url: string | null
-  }>('rpc_disburse_distribution', ['distributions'])
-
-  if (!row) return null
-
-  const submit = async () => {
-    setError(null)
-    try {
-      const proofPath = proof ? await uploadProof('distribution-proofs', proof) : null
-      const sigPath = signature ? await uploadProof('distribution-proofs', signature) : null
-      await disburse.mutateAsync({
-        p_id: row.id,
-        p_proof_url: proofPath,
-        p_signature_url: sigPath,
-      })
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyerahkan')
-    }
-  }
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title={`Serahkan ${row.ref_no}`}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Batal
-          </Button>
-          <Button disabled={disburse.isPending} onClick={submit}>
-            Tandai tersalurkan
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-3">
-        <p className="text-sm">
-          {row.beneficiary_name ?? row.program_name} — <strong>{formatIDR(row.amount)}</strong>
-        </p>
-        <Field label="Foto penyerahan" hint="Diambil saat penyerahan di lapangan">
-          <Input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => setProof(e.target.files?.[0] ?? null)}
-          />
-        </Field>
-        <Field label="Tanda tangan penerima">
-          <Input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => setSignature(e.target.files?.[0] ?? null)}
-          />
-        </Field>
-        <ErrorNote error={error ?? disburse.error} />
       </div>
     </Modal>
   )
