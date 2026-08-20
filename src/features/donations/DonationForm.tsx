@@ -4,25 +4,33 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { useAccounts, useFundTypes, usePrograms } from '@/lib/queries'
 import { uploadProof } from '@/lib/storage'
-import { formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
+import { dateInputJakarta, formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
 import { baseAmountOf, matchTransferCode, useDonationCodes } from '@/lib/transferCode'
+import { friendlyDbError } from '@/lib/dbError'
 import { paymentMethodLabels } from '@/lib/labels'
 import { Button, ErrorNote, Field, Input, Modal, Select, Textarea } from '@/components/ui'
 import { DonorPicker } from '@/features/donors/DonorPicker'
-import type { PaymentMethod } from '@/types/db'
+import type { DonationRow, PaymentMethod } from '@/types/db'
 
 interface Props {
   open: boolean
   onClose: () => void
   onSaved: (donationId: string) => void
+  /** Present when correcting an existing entry; absent when recording a new one. */
+  donation?: DonationRow | null
 }
 
 /**
  * Quick-entry form, tuned for a phone in the field: today's date prefilled,
  * amount masked with thousand separators, donor searchable with inline create,
  * camera capture for the transfer slip. Target is under 45 seconds.
+ *
+ * The same form corrects an unverified entry. `receipt_no`, `status` and
+ * `created_by` are deliberately absent: the number is allocated by the database,
+ * and a correction must not move the row out of the verification queue or
+ * reassign its author — separation of duties is decided from `created_by`.
  */
-export function DonationForm({ open, onClose, onSaved }: Props) {
+export function DonationForm({ open, onClose, onSaved, donation }: Props) {
   const { user } = useAuth()
   const qc = useQueryClient()
   const { data: fundTypes } = useFundTypes()
@@ -42,6 +50,26 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
   const [donatedAt, setDonatedAt] = useState(todayJakarta())
   const [notes, setNotes] = useState('')
   const [proof, setProof] = useState<File | null>(null)
+
+  const editing = Boolean(donation)
+
+  // Reload whenever a different donation is opened, so the form never shows the
+  // previous one's values.
+  useEffect(() => {
+    if (!donation) return
+    setDonorId(donation.donor_id)
+    setAnonymous(donation.is_anonymous)
+    setFundTypeId(donation.fund_type_id)
+    setProgramId(donation.program_id ?? '')
+    setAccountId(donation.account_id)
+    setAmount(maskIDR(String(Math.round(donation.amount))))
+    setMethod(donation.payment_method)
+    setPaymentRef(donation.payment_ref ?? '')
+    setInKind(donation.in_kind_description ?? '')
+    setDonatedAt(dateInputJakarta(donation.donated_at))
+    setNotes(donation.notes ?? '')
+    setProof(null)
+  }, [donation, open])
 
   useEffect(() => {
     if (fundTypes?.length && !fundTypeId) setFundTypeId(fundTypes[0].id)
@@ -87,34 +115,42 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
 
       const proofPath = proof ? await uploadProof('donation-proofs', proof) : null
 
-      const { data, error } = await supabase
-        .from('donations')
-        .insert({
-          donor_id: anonymous ? null : donorId,
-          is_anonymous: anonymous,
-          fund_type_id: fundTypeId,
-          program_id: programId || null,
-          account_id: accountId,
-          amount: value,
-          payment_method: method,
-          payment_ref: paymentRef || null,
-          in_kind_description: method === 'in_kind' ? inKind : null,
-          donated_at: new Date(`${donatedAt}T12:00:00+07:00`).toISOString(),
-          status: 'pending',
-          proof_url: proofPath,
-          notes: notes || null,
-          created_by: user!.id,
-        })
-        .select('id')
-        .single()
+      const fields = {
+        donor_id: anonymous ? null : donorId,
+        is_anonymous: anonymous,
+        fund_type_id: fundTypeId,
+        program_id: programId || null,
+        account_id: accountId,
+        amount: value,
+        payment_method: method,
+        payment_ref: paymentRef || null,
+        in_kind_description: method === 'in_kind' ? inKind : null,
+        donated_at: new Date(`${donatedAt}T12:00:00+07:00`).toISOString(),
+        notes: notes || null,
+        // A new file replaces the slip; no file leaves the stored one alone.
+        ...(proofPath ? { proof_url: proofPath } : {}),
+      }
 
-      if (error) throw new Error(error.message)
+      const { data, error } = donation
+        ? await supabase
+            .from('donations')
+            .update(fields)
+            .eq('id', donation.id)
+            .select('id')
+            .single()
+        : await supabase
+            .from('donations')
+            .insert({ ...fields, status: 'pending', proof_url: proofPath, created_by: user!.id })
+            .select('id')
+            .single()
+
+      if (error) throw new Error(friendlyDbError(error.message))
       return data.id as string
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ['donations'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
-      reset()
+      if (!editing) reset()
       onSaved(id)
     },
   })
@@ -123,14 +159,14 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Catat donasi"
+      title={editing ? `Ubah donasi ${donation!.receipt_no}` : 'Catat donasi'}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Batal
           </Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? 'Menyimpan…' : 'Simpan'}
+            {save.isPending ? 'Menyimpan…' : editing ? 'Simpan perubahan' : 'Simpan'}
           </Button>
         </>
       }
@@ -259,7 +295,14 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
           </Field>
         )}
 
-        <Field label="Bukti transfer / foto" hint="Diambil langsung dari kamera atau galeri">
+        <Field
+          label="Bukti transfer / foto"
+          hint={
+            editing && donation!.proof_url
+              ? 'Bukti yang ada tetap tersimpan bila tidak diganti'
+              : 'Diambil langsung dari kamera atau galeri'
+          }
+        >
           <Input
             type="file"
             accept="image/*,application/pdf"
@@ -274,8 +317,17 @@ export function DonationForm({ open, onClose, onSaved }: Props) {
 
         <ErrorNote error={save.error} />
         <p className="text-xs text-slate-500">
-          Donasi tersimpan berstatus <strong>menunggu verifikasi</strong> dan belum dihitung dalam
-          saldo sampai diverifikasi bendahara.
+          {editing ? (
+            <>
+              Perubahan tercatat di log audit. Status donasi tidak berubah — hanya donasi{' '}
+              <strong>terverifikasi</strong> yang dihitung dalam saldo.
+            </>
+          ) : (
+            <>
+              Donasi tersimpan berstatus <strong>menunggu verifikasi</strong> dan belum dihitung
+              dalam saldo sampai diverifikasi bendahara.
+            </>
+          )}
         </p>
       </div>
     </Modal>

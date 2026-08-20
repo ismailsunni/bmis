@@ -1,4 +1,4 @@
-import type { UserRole } from '@/types/db'
+import type { DonationStatus, UserRole } from '@/types/db'
 
 const RANK: Record<UserRole, number> = {
   super_admin: 5,
@@ -29,6 +29,15 @@ export const can = {
   recordDonation: (r: UserRole) => canWrite(r),
   verifyDonation: (r: UserRole) => r === 'finance' || r === 'super_admin',
   voidDonation: (r: UserRole) => r === 'finance' || r === 'super_admin',
+  /**
+   * Mirrors donations_update_own and donations_update_finance, narrowed to the
+   * statuses a correction belongs in: finance and above may fix any unverified
+   * entry, an amil only their own. A verified donation is voided and re-entered,
+   * never edited, so the balances and the issued receipt stay in step.
+   */
+  editDonation: (r: UserRole, own: boolean, status: DonationStatus) =>
+    (status === 'draft' || status === 'pending') &&
+    (r === 'finance' || r === 'super_admin' || (r === 'amil' && own)),
   readDonorPII: (r: UserRole) => r !== 'viewer',
   manageDonors: (r: UserRole) => canWrite(r),
   /**

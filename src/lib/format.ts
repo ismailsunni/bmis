@@ -42,9 +42,12 @@ export const formatDateTime = (v: string | Date | null | undefined) =>
 export const timeAgo = (v: string | Date) =>
   formatDistanceToNow(new Date(v), { addSuffix: true, locale: id })
 
+/** A timestamp as YYYY-MM-DD in Jakarta — the value an <input type="date"> wants. */
+export const dateInputJakarta = (v: string | Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(v))
+
 /** Today in Jakarta as YYYY-MM-DD, independent of the browser's timezone. */
-export const todayJakarta = () =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+export const todayJakarta = () => dateInputJakarta(new Date())
 
 export const monthLabel = (ym: string) => {
   const [y, m] = ym.split('-').map(Number)

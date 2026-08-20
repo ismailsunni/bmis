@@ -204,17 +204,40 @@ tidak punya tempat untuk mencatat alasan per baris.
 
 ## 5. Koreksi dan pembatalan
 
-| Keadaan                                                | Yang dilakukan                                                  |
-| ------------------------------------------------------ | --------------------------------------------------------------- |
-| Salah isi, **belum diverifikasi**, entri milik sendiri | Amil dapat memperbaikinya langsung                              |
-| Salah **jenis dana atau program**, sudah terverifikasi | Bendahara dapat memperbaikinya; perubahan tercatat di log audit |
-| Salah **jumlah**, sudah terverifikasi                  | **Batalkan** donasi lalu catat ulang dengan jumlah benar        |
-| Donasi tercatat dua kali                               | Batalkan salah satunya, alasan: duplikat                        |
-| Uang dikembalikan ke donatur                           | Batalkan dengan alasan pengembalian                             |
+| Keadaan                                                | Yang dilakukan                                         |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| Salah isi, **belum diverifikasi**, entri milik sendiri | Amil dapat memperbaikinya langsung — lihat di bawah    |
+| Salah isi, **belum diverifikasi**, entri orang lain    | Bendahara dapat memperbaikinya sebelum memverifikasi   |
+| Salah isi apa pun, **sudah terverifikasi**             | **Batalkan** donasi lalu catat ulang dengan data benar |
+| Donasi tercatat dua kali                               | Batalkan salah satunya, alasan: duplikat               |
+| Uang dikembalikan ke donatur                           | Batalkan dengan alasan pengembalian                    |
 
 Membatalkan (_void_) selalu memerlukan alasan. Donasi yang dibatalkan tetap
 tersimpan lengkap dengan alasannya dan berhenti dihitung dalam saldo — inilah
 sebabnya tidak ada tombol hapus di sistem ini.
+
+### Mengubah donasi yang belum diverifikasi
+
+Pada daftar **Donasi**, baris berstatus **Draf** atau **Menunggu verifikasi**
+memiliki ikon pensil. Bendahara juga dapat menekan **Ubah** langsung pada kartu
+di **Antrean verifikasi**, sebelum memutuskan verifikasi.
+
+Beberapa hal yang perlu diketahui:
+
+- **Nomor kwitansi tidak berubah.** Nomor dialokasikan basis data saat donasi
+  dicatat dan tetap melekat pada entri itu.
+- **Status tidak berubah.** Donasi yang diperbaiki tetap menunggu verifikasi;
+  memperbaiki bukan menyetujui.
+- **Pencatat tetap tercatat sebagai pencatat**, termasuk bila bendahara yang
+  memperbaikinya — aturan pemisahan tugas dihitung dari pencatat aslinya.
+- **Amil hanya dapat memperbaiki entri yang ia catat sendiri.** Bendahara dan
+  ketua dapat memperbaiki entri siapa pun. Ini ditegakkan basis data, bukan hanya
+  tombol.
+- **Donasi yang sudah terverifikasi tidak dapat diubah** — saldo, laporan, dan
+  kwitansi yang sudah terbit ikut bergantung padanya. Batalkan lalu catat ulang.
+- Bukti transfer yang sudah ada tetap tersimpan bila Anda tidak mengunggah
+  penggantinya.
+- Setiap perubahan tercatat di log audit beserta nilai sebelum dan sesudahnya.
 
 ### Mengubah data donatur
 

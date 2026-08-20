@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatIDR, formatIDRShort, maskIDR, parseIDR } from './format'
+import { dateInputJakarta, formatIDR, formatIDRShort, maskIDR, parseIDR } from './format'
 import { can, canWrite, hasMinRole } from '@/auth/permissions'
 import { baseAmountOf, matchTransferCode, transferCodeOf } from './transferCode'
 
@@ -21,6 +21,15 @@ describe('currency', () => {
   it('abbreviates for chart axes', () => {
     expect(formatIDRShort(2_500_000)).toBe('Rp 2.5 jt')
     expect(formatIDRShort(1_200_000_000)).toBe('Rp 1.2 M')
+  })
+})
+
+describe('dates', () => {
+  it("reads a timestamp as its Jakarta calendar day, not the browser's", () => {
+    // 23:30 UTC is already the next day in Jakarta (UTC+7); the edit form
+    // prefills from this, so an off-by-one here silently moves a donation
+    expect(dateInputJakarta('2026-08-19T23:30:00Z')).toBe('2026-08-20')
+    expect(dateInputJakarta('2026-08-20T05:00:00+07:00')).toBe('2026-08-20')
   })
 })
 
@@ -52,6 +61,19 @@ describe('permissions', () => {
     expect(can.editDonor('amil', false)).toBe(false)
     expect(can.editDonor('finance', false)).toBe(true)
     expect(can.editDonor('super_admin', false)).toBe(true)
+  })
+
+  it('lets an unverified donation be corrected, never a verified one', () => {
+    // mirrors donations_update_own / donations_update_finance
+    expect(can.editDonation('amil', true, 'pending')).toBe(true)
+    expect(can.editDonation('amil', true, 'draft')).toBe(true)
+    expect(can.editDonation('amil', false, 'pending')).toBe(false)
+    expect(can.editDonation('finance', false, 'pending')).toBe(true)
+    // a verified donation is voided and re-entered, not edited
+    expect(can.editDonation('finance', false, 'verified')).toBe(false)
+    expect(can.editDonation('super_admin', false, 'verified')).toBe(false)
+    expect(can.editDonation('auditor', true, 'pending')).toBe(false)
+    expect(can.editDonation('viewer', true, 'pending')).toBe(false)
   })
 
   it('never lets a read-only role edit a donor', () => {

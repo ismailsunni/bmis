@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(106);
+select plan(110);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -206,6 +206,17 @@ select throws_ok(
      select tests.ref('sedekah'), tests.ref('acct'), 1, 'cash', true, 'pending',
             tests.uid('amil2') $$,
   '42501', null, 'amil cannot attribute an entry to another user');
+-- correcting a mis-keyed amount before verification is the point of
+-- donations_update_own; the UI's pencil is built on this policy
+update public.donations set amount = 275000, notes = 'nominal dikoreksi'
+  where id = '44444444-4444-4444-4444-444444444444';
+select is(
+  (select amount from public.donations where id = '44444444-4444-4444-4444-444444444444'),
+  275000::numeric, 'amil can correct their own donation while it is pending');
+select throws_ok(
+  $$ update public.donations set created_by = tests.uid('amil2')
+     where id = '44444444-4444-4444-4444-444444444444' $$,
+  '42501', null, 'amil cannot hand their own entry to someone else');
 update public.donations set amount = 99
   where id = '22222222-2222-2222-2222-222222222222';
 select is(
@@ -228,12 +239,22 @@ select tests.login(tests.uid('amil2'), 'amil');
 select is_empty($$ select 1 from public.donations
                    where id = '22222222-2222-2222-2222-222222222222' $$,
   'amil sees only their own donations');
+update public.donations set amount = 1
+  where id = '44444444-4444-4444-4444-444444444444';
+select is(
+  (select amount from public.donations where id = '44444444-4444-4444-4444-444444444444'),
+  275000::numeric, 'amil cannot edit another amil''s pending donation');
 select tests.logout();
 
 -- ================================================================= 6. finance
 select tests.login(tests.uid('fin'), 'finance');
 
 select isnt_empty($$ select 1 from public.donations $$, 'finance reads all donations');
+update public.donations set notes = 'dikoreksi bendahara'
+  where id = '44444444-4444-4444-4444-444444444444';
+select is(
+  (select notes from public.donations where id = '44444444-4444-4444-4444-444444444444'),
+  'dikoreksi bendahara', 'finance can correct a pending donation entered by an amil');
 select lives_ok(
   $$ select public.rpc_verify_donation('44444444-4444-4444-4444-444444444444') $$,
   'finance can verify a donation created by an amil');

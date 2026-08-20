@@ -167,7 +167,7 @@ The anon key is in the bundle and must be assumed public, so:
   it.
 
 `supabase/tests/rls_test.sql` asserts all of the above for each of the five
-roles — 106 assertions covering both allowed and denied operations. It must pass
+roles — 110 assertions covering both allowed and denied operations. It must pass
 before release.
 
 ## Sign-in and membership

@@ -18,6 +18,12 @@ const RULES: [RegExp, string][] = [
     /violates row-level security|insufficient_privilege|permission denied/i,
     'Anda tidak berwenang melakukan perubahan ini.',
   ],
+  [
+    // PostgREST returns no rows when the row is gone or the update no longer
+    // matches a policy — usually because someone else changed its status first.
+    /Results contain 0 rows|JSON object requested/,
+    'Data ini tidak dapat diubah lagi — statusnya mungkin sudah berubah. Muat ulang halaman.',
+  ],
 ]
 
 export function friendlyDbError(message: string): string {

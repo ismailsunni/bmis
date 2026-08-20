@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Upload, MessageCircle, Download, Rows3 } from 'lucide-react'
+import { Plus, Upload, MessageCircle, Download, Rows3, Pencil } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
 import { useDonations, useFundTypes, useSettings, type DonationFilters } from '@/lib/queries'
@@ -23,9 +23,10 @@ const statusTone: Record<DonationStatus, 'neutral' | 'success' | 'warning' | 'da
 }
 
 export function DonationsPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const [filters, setFilters] = useState<DonationFilters>({ page: 0 })
   const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<DonationRow | null>(null)
   const { data, isLoading, error } = useDonations(filters)
   const { data: fundTypes } = useFundTypes()
   const { data: settings } = useSettings()
@@ -178,15 +179,26 @@ export function DonationsPage() {
                         <Badge tone={statusTone[r.status]}>{donationStatusLabels[r.status]}</Badge>
                       </td>
                       <td>
-                        {r.status === 'verified' && (
-                          <button
-                            onClick={() => shareReceipt(r)}
-                            title="Salin kwitansi & buka WhatsApp"
-                            className="text-slate-400 hover:text-emerald-600"
-                          >
-                            <MessageCircle size={16} />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {can.editDonation(role, r.created_by === user?.id, r.status) && (
+                            <button
+                              onClick={() => setEditing(r)}
+                              title="Ubah donasi"
+                              className="text-slate-400 hover:text-brand-700 dark:hover:text-brand-400"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                          )}
+                          {r.status === 'verified' && (
+                            <button
+                              onClick={() => shareReceipt(r)}
+                              title="Salin kwitansi & buka WhatsApp"
+                              className="text-slate-400 hover:text-emerald-600"
+                            >
+                              <MessageCircle size={16} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -205,6 +217,12 @@ export function DonationsPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         onSaved={() => setFormOpen(false)}
+      />
+      <DonationForm
+        open={!!editing}
+        donation={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => setEditing(null)}
       />
     </>
   )

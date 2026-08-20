@@ -4,6 +4,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/auth/permissions'
 import { useDonations, useRpc } from '@/lib/queries'
 import { ReasonDialog } from '@/components/ReasonDialog'
+import { DonationForm } from './DonationForm'
 import { signedUrl } from '@/lib/storage'
 import { PageHeader } from '@/components/AppShell'
 import {
@@ -32,6 +33,7 @@ export function VerificationQueue() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [rejecting, setRejecting] = useState<DonationRow | null>(null)
   const [overriding, setOverriding] = useState<DonationRow | null>(null)
+  const [editing, setEditing] = useState<DonationRow | null>(null)
   const [reason, setReason] = useState('')
 
   const verify = useRpc<{ p_id: string; p_override_reason?: string }>('rpc_verify_donation', [
@@ -99,6 +101,9 @@ export function VerificationQueue() {
               setRejecting(row)
               setReason('')
             }}
+            onEdit={
+              can.editDonation(role, isOwn(row), row.status) ? () => setEditing(row) : undefined
+            }
             own={isOwn(row)}
             canOverride={canOverride}
             busy={verify.isPending}
@@ -151,6 +156,13 @@ export function VerificationQueue() {
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
         </Field>
       </Modal>
+
+      <DonationForm
+        open={!!editing}
+        donation={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => setEditing(null)}
+      />
     </>
   )
 }
@@ -161,6 +173,7 @@ function QueueItem({
   onToggle,
   onVerify,
   onReject,
+  onEdit,
   own,
   canOverride,
   busy,
@@ -170,6 +183,8 @@ function QueueItem({
   onToggle: () => void
   onVerify: () => void
   onReject: () => void
+  /** Absent when this user may not correct the entry. */
+  onEdit?: () => void
   own: boolean
   canOverride: boolean
   busy: boolean
@@ -228,6 +243,11 @@ function QueueItem({
             <Button size="sm" variant="secondary" onClick={onReject}>
               Tolak
             </Button>
+            {onEdit && (
+              <Button size="sm" variant="secondary" onClick={onEdit}>
+                Ubah
+              </Button>
+            )}
             {own && (
               <span className="text-xs text-amber-700 dark:text-amber-400">
                 {canOverride
