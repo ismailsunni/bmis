@@ -129,7 +129,18 @@ Cara tercepat menangani banyak transfer dan QRIS sekaligus.
 
 Tidak ada data yang tersimpan sebelum Anda menekan Impor.
 
-### 2f. Mengirim kwitansi ke donatur
+### 2f. Melihat rincian satu donasi
+
+Pada daftar **Donasi**, tekan **nomor kwitansinya**. Halaman rincian memuat
+seluruh isi entri, jejaknya (siapa mencatat, siapa memverifikasi, dan kapan),
+alasan penolakan atau pembatalan bila ada, serta foto bukti transfernya. Dewan
+Pengawas juga melihat log audit entri tersebut di halaman yang sama.
+
+Tombol **Ubah**, **Kirim kwitansi**, dan **Batalkan** tersedia di sini juga,
+sesuai peran dan status donasinya. Halaman ini punya alamat sendiri, jadi
+tautannya dapat dikirim ke pengurus lain atau ke Dewan Pengawas.
+
+### 2g. Mengirim kwitansi ke donatur
 
 Pada daftar **Donasi**, baris yang sudah terverifikasi memiliki ikon WhatsApp.
 Menekannya menyalin teks kwitansi ke papan klip dan membuka WhatsApp; pilih

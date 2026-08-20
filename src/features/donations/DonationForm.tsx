@@ -182,6 +182,7 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ['donations'] })
+      qc.invalidateQueries({ queryKey: ['donation'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       if (!editing) reset()
       onSaved(id)

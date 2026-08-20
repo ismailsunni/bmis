@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import type {
   Account,
+  AuditEntry,
   Beneficiary,
   DashboardSummary,
   DistributionRow,
@@ -105,6 +106,46 @@ export function useDonations(filters: DonationFilters = {}) {
       const { data, error, count } = await q
       if (error) throw new Error(error.message)
       return { rows: (data ?? []) as DonationRow[], count: count ?? 0 }
+    },
+  })
+}
+
+/**
+ * One donation for the detail page. Reads donations_v so the fund, program,
+ * account and actor names come resolved; RLS still applies, so an amil asking
+ * for somebody else's receipt simply gets nothing back.
+ */
+export function useDonation(id: string | undefined) {
+  return useQuery({
+    queryKey: ['donation', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('donations_v')
+        .select('*')
+        .eq('id', id!)
+        .maybeSingle()
+      if (error) throw new Error(error.message)
+      return data as DonationRow | null
+    },
+  })
+}
+
+/** The audit trail of a single record, newest first. Auditor and above only. */
+export function useRecordAudit(table: string, id: string | undefined) {
+  return useQuery({
+    queryKey: ['audit', table, id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_log')
+        .select('*')
+        // ordered by id: inside one transaction every row shares the same now()
+        .eq('table_name', table)
+        .eq('record_id', id!)
+        .order('id', { ascending: false })
+      if (error) throw new Error(error.message)
+      return (data ?? []) as AuditEntry[]
     },
   })
 }

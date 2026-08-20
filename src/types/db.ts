@@ -105,6 +105,9 @@ export interface Donation {
   verified_at: string | null
   reject_reason: string | null
   void_reason: string | null
+  voided_by: string | null
+  voided_at: string | null
+  sod_override_reason: string | null
   proof_url: string | null
   notes: string | null
   created_by: string

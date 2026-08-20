@@ -176,7 +176,11 @@ export function DonationsPage() {
                 <tbody>
                   {data.rows.map((r) => (
                     <tr key={r.id}>
-                      <td className="font-mono text-xs">{r.receipt_no}</td>
+                      <td className="font-mono text-xs">
+                        <Link to={`/donasi/${r.id}`} className="hover:underline">
+                          {r.receipt_no}
+                        </Link>
+                      </td>
                       <td className="whitespace-nowrap">{formatDate(r.donated_at)}</td>
                       <td>
                         {r.is_anonymous ? (

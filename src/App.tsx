@@ -7,6 +7,7 @@ import { can } from '@/auth/permissions'
 import { LoginPage } from '@/features/LoginPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { DonationsPage } from '@/features/donations/DonationsPage'
+import { DonationDetailPage } from '@/features/donations/DonationDetailPage'
 import { DonationImportPage } from '@/features/donations/DonationImportPage'
 import { BulkDonationPage } from '@/features/donations/BulkDonationPage'
 import { VerificationQueue } from '@/features/donations/VerificationQueue'
@@ -44,6 +45,9 @@ export default function App() {
       <Route path="/donasi" element={shell(<DonationsPage />)} />
       <Route path="/donasi/massal" element={shell(<BulkDonationPage />, can.recordDonation)} />
       <Route path="/donasi/impor" element={shell(<DonationImportPage />, can.recordDonation)} />
+      {/* after the static /donasi/* routes: react-router ranks a literal
+          segment above a dynamic one, so massal and impor still win */}
+      <Route path="/donasi/:id" element={shell(<DonationDetailPage />)} />
       <Route path="/verifikasi" element={shell(<VerificationQueue />, can.verifyDonation)} />
       <Route path="/donatur" element={shell(<DonorsPage />, can.readDonorPII)} />
       <Route path="/donatur/:id" element={shell(<DonorDetailPage />, can.readDonorPII)} />
