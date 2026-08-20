@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(110);
+select plan(117);
 
 -- ------------------------------------------------------------------ fixtures
 create schema if not exists tests;
@@ -239,17 +239,20 @@ select tests.login(tests.uid('amil2'), 'amil');
 select is_empty($$ select 1 from public.donations
                    where id = '22222222-2222-2222-2222-222222222222' $$,
   'amil sees only their own donations');
+-- silently matches no rows: donations_update_own is scoped to created_by. The
+-- assertion is made below as finance, since amil2 cannot read the row either and
+-- would only be comparing one null to another.
 update public.donations set amount = 1
   where id = '44444444-4444-4444-4444-444444444444';
-select is(
-  (select amount from public.donations where id = '44444444-4444-4444-4444-444444444444'),
-  275000::numeric, 'amil cannot edit another amil''s pending donation');
 select tests.logout();
 
 -- ================================================================= 6. finance
 select tests.login(tests.uid('fin'), 'finance');
 
 select isnt_empty($$ select 1 from public.donations $$, 'finance reads all donations');
+select is(
+  (select amount from public.donations where id = '44444444-4444-4444-4444-444444444444'),
+  275000::numeric, 'amil cannot edit another amil''s pending donation');
 update public.donations set notes = 'dikoreksi bendahara'
   where id = '44444444-4444-4444-4444-444444444444';
 select is(
@@ -264,6 +267,30 @@ select is(
 select is(
   (select verified_by from public.donations where id = '44444444-4444-4444-4444-444444444444'),
   tests.uid('fin'), 'verification records the verifier');
+-- once verified the figures are in fund_balance() and on an issued receipt, so
+-- guard_donation_immutable_after_queue() freezes them for every role. The
+-- annotations stay open: forcing a void to fix a bank reference would destroy a
+-- correct donation to correct a comment.
+select throws_ok(
+  $$ update public.donations set amount = 1
+     where id = '44444444-4444-4444-4444-444444444444' $$,
+  '23514', null, 'finance cannot change the amount of a verified donation');
+select throws_ok(
+  $$ update public.donations set fund_type_id = tests.ref('zakat')
+     where id = '44444444-4444-4444-4444-444444444444' $$,
+  '23514', null, 'finance cannot move a verified donation to another fund');
+select throws_ok(
+  $$ update public.donations set donated_at = now() - interval '90 days'
+     where id = '44444444-4444-4444-4444-444444444444' $$,
+  '23514', null, 'finance cannot backdate a verified donation into another period');
+select lives_ok(
+  $$ update public.donations set payment_ref = 'TRX-99', notes = 'referensi dilengkapi'
+     where id = '44444444-4444-4444-4444-444444444444' $$,
+  'finance can still annotate a verified donation');
+select is(
+  (select payment_ref from public.donations
+   where id = '44444444-4444-4444-4444-444444444444'),
+  'TRX-99', 'the annotation is stored');
 delete from public.donations where id = '44444444-4444-4444-4444-444444444444';
 select isnt_empty(
   $$ select 1 from public.donations where id = '44444444-4444-4444-4444-444444444444' $$,
@@ -337,6 +364,16 @@ select is(
    where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
   'entri langsung oleh ketua saat kegiatan',
   'the override reason is stored on the donation itself');
+-- separation of duties has an escape hatch for a ketua; a verified figure has
+-- none. It is in the balances and on a receipt already given to the donor.
+select throws_ok(
+  $$ update public.donations set amount = 1
+     where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
+  '23514', null, 'not even super_admin can change a verified amount');
+select lives_ok(
+  $$ update public.donations set notes = 'catatan ditambah ketua'
+     where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
+  'super_admin can annotate a verified donation');
 select tests.logout();
 
 -- ============================================== 7. sharia / fund-type guards

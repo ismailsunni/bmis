@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dateInputJakarta, formatIDR, formatIDRShort, maskIDR, parseIDR } from './format'
-import { can, canWrite, hasMinRole } from '@/auth/permissions'
+import { can, canWrite, donationEditScope, hasMinRole } from '@/auth/permissions'
 import { baseAmountOf, matchTransferCode, transferCodeOf } from './transferCode'
 
 describe('currency', () => {
@@ -63,17 +63,26 @@ describe('permissions', () => {
     expect(can.editDonor('super_admin', false)).toBe(true)
   })
 
-  it('lets an unverified donation be corrected, never a verified one', () => {
+  it('allows a full correction only while the donation is still in the queue', () => {
     // mirrors donations_update_own / donations_update_finance
-    expect(can.editDonation('amil', true, 'pending')).toBe(true)
-    expect(can.editDonation('amil', true, 'draft')).toBe(true)
-    expect(can.editDonation('amil', false, 'pending')).toBe(false)
-    expect(can.editDonation('finance', false, 'pending')).toBe(true)
-    // a verified donation is voided and re-entered, not edited
-    expect(can.editDonation('finance', false, 'verified')).toBe(false)
-    expect(can.editDonation('super_admin', false, 'verified')).toBe(false)
-    expect(can.editDonation('auditor', true, 'pending')).toBe(false)
-    expect(can.editDonation('viewer', true, 'pending')).toBe(false)
+    expect(donationEditScope('amil', true, 'pending')).toBe('full')
+    expect(donationEditScope('amil', true, 'draft')).toBe('full')
+    expect(donationEditScope('amil', false, 'pending')).toBe(null)
+    expect(donationEditScope('finance', false, 'pending')).toBe('full')
+    expect(donationEditScope('auditor', true, 'pending')).toBe(null)
+    expect(donationEditScope('viewer', true, 'pending')).toBe(null)
+  })
+
+  it('narrows a verified donation to its annotations, for every role', () => {
+    // mirrors guard_donation_immutable_after_queue(): the figures are already in
+    // the balances and on an issued receipt, so they change by void and re-entry
+    expect(donationEditScope('finance', false, 'verified')).toBe('annotations')
+    expect(donationEditScope('super_admin', false, 'verified')).toBe('annotations')
+    // an amil has no update policy for a verified row at all, own or not
+    expect(donationEditScope('amil', true, 'verified')).toBe(null)
+    // voided and rejected are terminal: re-enter instead
+    expect(donationEditScope('super_admin', false, 'voided')).toBe(null)
+    expect(donationEditScope('finance', false, 'rejected')).toBe(null)
   })
 
   it('never lets a read-only role edit a donor', () => {

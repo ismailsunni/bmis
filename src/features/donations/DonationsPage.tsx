@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Upload, MessageCircle, Download, Rows3, Pencil } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
-import { can } from '@/auth/permissions'
+import { can, donationEditScope } from '@/auth/permissions'
 import { useDonations, useFundTypes, useSettings, type DonationFilters } from '@/lib/queries'
 import { Badge, Button, EmptyState, ErrorNote, Input, Select, Spinner } from '@/components/ui'
 import { PageHeader } from '@/components/AppShell'
@@ -35,6 +35,9 @@ export function DonationsPage() {
 
   const set = (patch: Partial<DonationFilters>) =>
     setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 0 }))
+
+  const editScope = (row: DonationRow) =>
+    donationEditScope(role, row.created_by === user?.id, row.status)
 
   const shareReceipt = async (row: DonationRow) => {
     const text = receiptText(row, org)
@@ -180,10 +183,14 @@ export function DonationsPage() {
                       </td>
                       <td>
                         <div className="flex items-center gap-3">
-                          {can.editDonation(role, r.created_by === user?.id, r.status) && (
+                          {editScope(r) && (
                             <button
                               onClick={() => setEditing(r)}
-                              title="Ubah donasi"
+                              title={
+                                editScope(r) === 'annotations'
+                                  ? 'Ubah catatan, referensi, atau bukti'
+                                  : 'Ubah donasi'
+                              }
                               className="text-slate-400 hover:text-brand-700 dark:hover:text-brand-400"
                             >
                               <Pencil size={16} />

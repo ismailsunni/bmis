@@ -47,6 +47,7 @@ These are the rules that distinguish correct code from code that merely runs.
 4. **Separation of duties is a DB check**, not UI logic: `created_by <> verified_by` on donations and distributions. **Who may override** is also a DB rule — `guard_sod_override()` restricts setting `sod_override_reason` to `super_admin` and `finance`, requires that the approver really is the creator, and demands at least 10 characters. Before that trigger existed the rule lived only in the RPCs, so a finance user could self-verify with a direct PostgREST update; with a public anon key that was reachable with curl. Any rule that only an RPC enforces is not enforced.
 5. **`viewer` never queries base tables.** It reads masked views (`donations_public_v`, `donors_masked_v`) and the dashboard RPC; base-table SELECT policies exclude it entirely. See the departures note below for why those two views are definer-rights.
 6. **Nothing is hard-deleted.** Donations are _voided_, records are soft-deleted via `deleted_at`. `audit_log` is append-only — no UPDATE/DELETE policy exists for any role.
+   A corollary, enforced by `guard_donation_immutable_after_queue()`: once a donation leaves `draft`/`pending`, every column a balance, a report bucket or an issued receipt depends on is frozen for **every** role, ketua included — `donations_update_finance` has no status clause, so without the trigger a bendahara could move a verified amount with one PostgREST call. `notes`, `payment_ref` and `proof_url` stay editable, because forcing a void to fix a bank reference destroys a correct donation to correct a comment. The state-transition columns stay open too, or voiding — the actual correction path — would be blocked by the guard.
 7. **Only `status = 'verified'` donations count** toward balances, dashboard figures, and reports.
 8. **Money is `numeric(15,2)` in rupiah** (not cents, never floats).
 9. **Dashboard aggregates never pull rows into the browser.** `rpc_dashboard_summary(p_from, p_to)` returns the whole dashboard as one jsonb payload; the heaviest rollups are matviews refreshed by pg_cron every 15 minutes.
@@ -101,7 +102,7 @@ The gate exists because Google sign-in lets anyone with a Google account reach t
 
 ## Definition of done (per PRD §12)
 
-Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 110 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
+Feature works · RLS policies written **and tested for all 5 roles** · audit trigger attached · mobile layout verified · seeded demo data. The pgTAP RLS suite in `supabase/tests/rls_test.sql` — currently 117 assertions covering allowed _and denied_ operations for all five roles plus anon — is a release blocker. Extend it in the same migration that adds a policy.
 
 ## Open questions still unresolved
 

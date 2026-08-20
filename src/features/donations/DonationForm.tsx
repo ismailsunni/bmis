@@ -2,9 +2,17 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/auth/AuthProvider'
+import { donationEditScope } from '@/auth/permissions'
 import { useAccounts, useFundTypes, usePrograms } from '@/lib/queries'
 import { uploadProof } from '@/lib/storage'
-import { dateInputJakarta, formatIDR, maskIDR, parseIDR, todayJakarta } from '@/lib/format'
+import {
+  dateInputJakarta,
+  formatDate,
+  formatIDR,
+  maskIDR,
+  parseIDR,
+  todayJakarta,
+} from '@/lib/format'
 import { baseAmountOf, matchTransferCode, useDonationCodes } from '@/lib/transferCode'
 import { friendlyDbError } from '@/lib/dbError'
 import { paymentMethodLabels } from '@/lib/labels'
@@ -25,13 +33,18 @@ interface Props {
  * amount masked with thousand separators, donor searchable with inline create,
  * camera capture for the transfer slip. Target is under 45 seconds.
  *
- * The same form corrects an unverified entry. `receipt_no`, `status` and
+ * The same form corrects an existing entry. `receipt_no`, `status` and
  * `created_by` are deliberately absent: the number is allocated by the database,
  * and a correction must not move the row out of the verification queue or
  * reassign its author — separation of duties is decided from `created_by`.
+ *
+ * Once the entry is verified the form narrows to what cannot desync a balance
+ * from the bank: notes, payment reference, proof. The frozen figures are shown
+ * read-only rather than hidden, so the operator can see they are looking at the
+ * right donation before annotating it.
  */
 export function DonationForm({ open, onClose, onSaved, donation }: Props) {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const qc = useQueryClient()
   const { data: fundTypes } = useFundTypes()
   const { data: accounts } = useAccounts()
@@ -52,6 +65,10 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
   const [proof, setProof] = useState<File | null>(null)
 
   const editing = Boolean(donation)
+  const scope = donation
+    ? donationEditScope(role, donation.created_by === user?.id, donation.status)
+    : 'full'
+  const annotationsOnly = scope === 'annotations'
 
   // Reload whenever a different donation is opened, so the form never shows the
   // previous one's values.
@@ -106,14 +123,30 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
 
   const save = useMutation({
     mutationFn: async () => {
+      const proofPath = proof ? await uploadProof('donation-proofs', proof) : null
+
+      // A verified donation only accepts its annotations. Sending the frozen
+      // columns unchanged would pass the trigger, but sending them at all invites
+      // a stale value from this form to overwrite the row.
+      if (annotationsOnly) {
+        const { error } = await supabase
+          .from('donations')
+          .update({
+            payment_ref: paymentRef || null,
+            notes: notes || null,
+            ...(proofPath ? { proof_url: proofPath } : {}),
+          })
+          .eq('id', donation!.id)
+        if (error) throw new Error(friendlyDbError(error.message))
+        return donation!.id
+      }
+
       const value = parseIDR(amount)
       if (value <= 0) throw new Error('Jumlah donasi harus lebih dari nol')
       if (!anonymous && !donorId) throw new Error('Pilih donatur atau tandai sebagai anonim')
       if (programRequired && !programId) {
         throw new Error(`${fundType?.name} harus dikaitkan dengan program`)
       }
-
-      const proofPath = proof ? await uploadProof('donation-proofs', proof) : null
 
       const fields = {
         donor_id: anonymous ? null : donorId,
@@ -159,7 +192,11 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? `Ubah donasi ${donation!.receipt_no}` : 'Catat donasi'}
+      title={
+        editing
+          ? `${annotationsOnly ? 'Catatan & bukti' : 'Ubah'} donasi ${donation!.receipt_no}`
+          : 'Catat donasi'
+      }
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -172,126 +209,155 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
       }
     >
       <div className="space-y-3">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={anonymous}
-            onChange={(e) => setAnonymous(e.target.checked)}
-          />
-          Donasi anonim (dicatat sebagai “Hamba Allah”)
-        </label>
-
-        {!anonymous && (
-          <Field label="Donatur" required>
-            <DonorPicker value={donorId} onChange={setDonorId} />
-          </Field>
-        )}
-
-        <Field label="Jumlah" required hint="Rupiah penuh, tanpa sen">
-          <Input
-            inputMode="numeric"
-            placeholder="0"
-            value={amount}
-            onChange={(e) => setAmount(maskIDR(e.target.value))}
-            className="text-lg font-semibold"
-          />
-        </Field>
-
-        {matched && (
-          <div className="rounded-lg bg-brand-50 p-3 text-sm dark:bg-brand-900/20">
-            <p>
-              Kode <strong>{matched.code}</strong> pada nominal ini merujuk{' '}
-              <strong>{matched.name}</strong> (donasi {formatIDR(baseAmountOf(parseIDR(amount)))} +
-              kode).
+        {annotationsOnly && (
+          <div className="rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-800">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <Frozen label="Jumlah" value={formatIDR(donation!.amount)} />
+              <Frozen label="Jenis dana" value={donation!.fund_type_name} />
+              <Frozen
+                label="Donatur"
+                value={donation!.is_anonymous ? 'Hamba Allah' : (donation!.donor_name ?? '—')}
+              />
+              <Frozen label="Tanggal" value={formatDate(donation!.donated_at)} />
+            </dl>
+            <p className="mt-2 text-xs text-slate-500">
+              Donasi ini sudah terverifikasi, jadi angka-angka di atas terkunci — semuanya sudah
+              masuk saldo dan kwitansi yang terbit. Untuk memperbaikinya,{' '}
+              <strong>batalkan donasi lalu catat ulang</strong>.
             </p>
-            {!matchApplied && (
-              <button
-                type="button"
-                onClick={applyMatch}
-                className="mt-1 font-medium text-brand-700 hover:underline dark:text-brand-300"
-              >
-                Terapkan
-              </button>
-            )}
           </div>
         )}
 
-        <Field label="Jenis dana" required>
-          <Select value={fundTypeId} onChange={(e) => setFundTypeId(e.target.value)}>
-            {fundTypes?.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.transfer_code ? `${f.transfer_code} — ${f.name}` : f.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {!annotationsOnly && (
+          <>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={anonymous}
+                onChange={(e) => setAnonymous(e.target.checked)}
+              />
+              Donasi anonim (dicatat sebagai “Hamba Allah”)
+            </label>
 
-        <Field
-          label="Program"
-          required={programRequired}
-          hint={programRequired ? 'Wajib untuk dana terikat' : 'Opsional'}
-        >
-          <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
-            <option value="">— tanpa program —</option>
-            {programs
-              ?.filter((p) => p.status === 'active')
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.code ? `${p.code} — ${p.name}` : p.name}
-                </option>
-              ))}
-          </Select>
-        </Field>
+            {!anonymous && (
+              <Field label="Donatur" required>
+                <DonorPicker value={donorId} onChange={setDonorId} />
+              </Field>
+            )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Metode" required>
-            <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-              {Object.entries(paymentMethodLabels).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Tanggal donasi" required>
-            <Input
-              type="date"
-              value={donatedAt}
-              max={todayJakarta()}
-              onChange={(e) => setDonatedAt(e.target.value)}
-            />
-          </Field>
-        </div>
+            <Field label="Jumlah" required hint="Rupiah penuh, tanpa sen">
+              <Input
+                inputMode="numeric"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(maskIDR(e.target.value))}
+                className="text-lg font-semibold"
+              />
+            </Field>
 
-        <Field label="Rekening penerima" required>
-          <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            {accounts
-              ?.filter((a) => a.is_active)
-              .map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-          </Select>
-        </Field>
+            {matched && (
+              <div className="rounded-lg bg-brand-50 p-3 text-sm dark:bg-brand-900/20">
+                <p>
+                  Kode <strong>{matched.code}</strong> pada nominal ini merujuk{' '}
+                  <strong>{matched.name}</strong> (donasi{' '}
+                  {formatIDR(baseAmountOf(parseIDR(amount)))} + kode).
+                </p>
+                {!matchApplied && (
+                  <button
+                    type="button"
+                    onClick={applyMatch}
+                    className="mt-1 font-medium text-brand-700 hover:underline dark:text-brand-300"
+                  >
+                    Terapkan
+                  </button>
+                )}
+              </div>
+            )}
 
-        {method !== 'cash' && method !== 'in_kind' && (
-          <Field
-            label="Referensi pembayaran"
-            hint="Nomor transaksi bank / QRIS — dipakai untuk deteksi duplikat"
-          >
-            <Input value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
-          </Field>
+            <Field label="Jenis dana" required>
+              <Select value={fundTypeId} onChange={(e) => setFundTypeId(e.target.value)}>
+                {fundTypes?.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.transfer_code ? `${f.transfer_code} — ${f.name}` : f.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field
+              label="Program"
+              required={programRequired}
+              hint={programRequired ? 'Wajib untuk dana terikat' : 'Opsional'}
+            >
+              <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
+                <option value="">— tanpa program —</option>
+                {programs
+                  ?.filter((p) => p.status === 'active')
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.code ? `${p.code} — ${p.name}` : p.name}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Metode" required>
+                <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+                  {Object.entries(paymentMethodLabels).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Tanggal donasi" required>
+                <Input
+                  type="date"
+                  value={donatedAt}
+                  max={todayJakarta()}
+                  onChange={(e) => setDonatedAt(e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Rekening penerima" required>
+              <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+                {accounts
+                  ?.filter((a) => a.is_active)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
+
+            {method !== 'cash' && method !== 'in_kind' && (
+              <Field
+                label="Referensi pembayaran"
+                hint="Nomor transaksi bank / QRIS — dipakai untuk deteksi duplikat"
+              >
+                <Input value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
+              </Field>
+            )}
+
+            {method === 'in_kind' && (
+              <Field label="Deskripsi barang" required>
+                <Input
+                  value={inKind}
+                  onChange={(e) => setInKind(e.target.value)}
+                  placeholder="mis. 10 karung beras 25 kg"
+                />
+              </Field>
+            )}
+          </>
         )}
 
-        {method === 'in_kind' && (
-          <Field label="Deskripsi barang" required>
-            <Input
-              value={inKind}
-              onChange={(e) => setInKind(e.target.value)}
-              placeholder="mis. 10 karung beras 25 kg"
-            />
+        {annotationsOnly && (
+          <Field label="Referensi pembayaran" hint="Nomor transaksi bank / QRIS">
+            <Input value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
           </Field>
         )}
 
@@ -317,7 +383,12 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
 
         <ErrorNote error={save.error} />
         <p className="text-xs text-slate-500">
-          {editing ? (
+          {annotationsOnly ? (
+            <>
+              Perubahan tercatat di log audit. Catatan, referensi, dan bukti tidak memengaruhi saldo
+              maupun laporan — itulah sebabnya ketiganya masih dapat diperbaiki.
+            </>
+          ) : editing ? (
             <>
               Perubahan tercatat di log audit. Status donasi tidak berubah — hanya donasi{' '}
               <strong>terverifikasi</strong> yang dihitung dalam saldo.
@@ -331,5 +402,14 @@ export function DonationForm({ open, onClose, onSaved, donation }: Props) {
         </p>
       </div>
     </Modal>
+  )
+}
+
+function Frozen({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-slate-500">{label}</dt>
+      <dd className="font-medium">{value}</dd>
+    </div>
   )
 }

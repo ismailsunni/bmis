@@ -233,8 +233,12 @@ Beberapa hal yang perlu diketahui:
 - **Amil hanya dapat memperbaiki entri yang ia catat sendiri.** Bendahara dan
   ketua dapat memperbaiki entri siapa pun. Ini ditegakkan basis data, bukan hanya
   tombol.
-- **Donasi yang sudah terverifikasi tidak dapat diubah** — saldo, laporan, dan
-  kwitansi yang sudah terbit ikut bergantung padanya. Batalkan lalu catat ulang.
+- **Pada donasi yang sudah terverifikasi, hanya catatan, referensi pembayaran,
+  dan bukti transfer yang masih dapat diperbaiki.** Ketiganya tidak memengaruhi
+  saldo maupun laporan. Jumlah, jenis dana, program, tanggal, dan donatur
+  terkunci — semuanya sudah masuk saldo dan kwitansi yang terbit, jadi
+  perbaikannya adalah **batalkan lalu catat ulang**. Ini berlaku untuk semua
+  peran, **termasuk ketua**, dan ditegakkan basis data.
 - Bukti transfer yang sudah ada tetap tersimpan bila Anda tidak mengunggah
   penggantinya.
 - Setiap perubahan tercatat di log audit beserta nilai sebelum dan sesudahnya.

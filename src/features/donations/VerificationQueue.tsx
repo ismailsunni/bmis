@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthProvider'
-import { can } from '@/auth/permissions'
+import { can, donationEditScope } from '@/auth/permissions'
 import { useDonations, useRpc } from '@/lib/queries'
 import { ReasonDialog } from '@/components/ReasonDialog'
 import { DonationForm } from './DonationForm'
@@ -102,7 +102,7 @@ export function VerificationQueue() {
               setReason('')
             }}
             onEdit={
-              can.editDonation(role, isOwn(row), row.status) ? () => setEditing(row) : undefined
+              donationEditScope(role, isOwn(row), row.status) ? () => setEditing(row) : undefined
             }
             own={isOwn(row)}
             canOverride={canOverride}

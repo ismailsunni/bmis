@@ -21,6 +21,31 @@ export const canWrite = (role: UserRole) =>
   role === 'amil' || role === 'finance' || role === 'super_admin'
 
 /**
+ * How much of a donation a correction may touch.
+ *
+ * `full` while the entry is still in the queue, per donations_update_own and
+ * donations_update_finance. `annotations` once it is verified — notes, payment
+ * reference and proof only, mirroring guard_donation_immutable_after_queue(),
+ * which freezes every column a balance, a report bucket or an issued receipt
+ * depends on. `null` when this user may not correct the entry at all.
+ *
+ * Nobody edits a verified amount, not even a ketua: that money is already in
+ * fund_balance() and on a receipt the donor is holding, so the correction is a
+ * void and a re-entry.
+ */
+export const donationEditScope = (
+  role: UserRole,
+  own: boolean,
+  status: DonationStatus,
+): 'full' | 'annotations' | null => {
+  const financeOrAbove = role === 'finance' || role === 'super_admin'
+  if (status === 'draft' || status === 'pending') {
+    return financeOrAbove || (role === 'amil' && own) ? 'full' : null
+  }
+  return status === 'verified' && financeOrAbove ? 'annotations' : null
+}
+
+/**
  * UI-level capability checks. These only decide what to render — every one of
  * them is enforced independently by RLS, and the database is what actually
  * says no. Never treat a `true` here as authorization.
@@ -29,15 +54,6 @@ export const can = {
   recordDonation: (r: UserRole) => canWrite(r),
   verifyDonation: (r: UserRole) => r === 'finance' || r === 'super_admin',
   voidDonation: (r: UserRole) => r === 'finance' || r === 'super_admin',
-  /**
-   * Mirrors donations_update_own and donations_update_finance, narrowed to the
-   * statuses a correction belongs in: finance and above may fix any unverified
-   * entry, an amil only their own. A verified donation is voided and re-entered,
-   * never edited, so the balances and the issued receipt stay in step.
-   */
-  editDonation: (r: UserRole, own: boolean, status: DonationStatus) =>
-    (status === 'draft' || status === 'pending') &&
-    (r === 'finance' || r === 'super_admin' || (r === 'amil' && own)),
   readDonorPII: (r: UserRole) => r !== 'viewer',
   manageDonors: (r: UserRole) => canWrite(r),
   /**
