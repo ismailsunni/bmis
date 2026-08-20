@@ -1,12 +1,19 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Upload, MessageCircle, Download, Rows3, Pencil } from 'lucide-react'
+import { Plus, Upload, MessageCircle, Download, Rows3, Pencil, Ban } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { can, donationEditScope } from '@/auth/permissions'
-import { useDonations, useFundTypes, useSettings, type DonationFilters } from '@/lib/queries'
+import {
+  useDonations,
+  useFundTypes,
+  useRpc,
+  useSettings,
+  type DonationFilters,
+} from '@/lib/queries'
 import { Badge, Button, EmptyState, ErrorNote, Input, Select, Spinner } from '@/components/ui'
 import { PageHeader } from '@/components/AppShell'
 import { Pagination } from '@/components/Pagination'
+import { ReasonDialog } from '@/components/ReasonDialog'
 import { formatDate, formatIDR } from '@/lib/format'
 import { donationStatusLabels, paymentMethodLabels } from '@/lib/labels'
 import { copyToClipboard, receiptText, whatsappLink } from '@/lib/receipt'
@@ -27,6 +34,7 @@ export function DonationsPage() {
   const [filters, setFilters] = useState<DonationFilters>({ page: 0 })
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<DonationRow | null>(null)
+  const [voiding, setVoiding] = useState<DonationRow | null>(null)
   const { data, isLoading, error } = useDonations(filters)
   const { data: fundTypes } = useFundTypes()
   const { data: settings } = useSettings()
@@ -35,6 +43,12 @@ export function DonationsPage() {
 
   const set = (patch: Partial<DonationFilters>) =>
     setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 0 }))
+
+  // Voiding is the only reversal a verified donation has: it leaves the balances
+  // and the reports but keeps the row, its receipt number and the stated reason.
+  const voidDonation = useRpc<{ p_id: string; p_reason: string }>('rpc_void_donation', [
+    'donations',
+  ])
 
   const editScope = (row: DonationRow) =>
     donationEditScope(role, row.created_by === user?.id, row.status)
@@ -205,6 +219,15 @@ export function DonationsPage() {
                               <MessageCircle size={16} />
                             </button>
                           )}
+                          {r.status === 'verified' && can.voidDonation(role) && (
+                            <button
+                              onClick={() => setVoiding(r)}
+                              title="Batalkan donasi"
+                              className="text-slate-400 hover:text-rose-600"
+                            >
+                              <Ban size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -230,6 +253,26 @@ export function DonationsPage() {
         donation={editing}
         onClose={() => setEditing(null)}
         onSaved={() => setEditing(null)}
+      />
+
+      <ReasonDialog
+        open={!!voiding}
+        title={`Batalkan donasi ${voiding?.receipt_no ?? ''}`}
+        description={
+          `Donasi ${formatIDR(voiding?.amount ?? 0)} akan keluar dari saldo, dasbor, dan ` +
+          'seluruh laporan. Datanya tetap tersimpan lengkap dengan alasan ini — tidak ada ' +
+          'penghapusan di sistem ini. Kwitansi yang sudah terbit tidak ikut berubah, jadi ' +
+          'beri tahu donatur bila kwitansinya perlu diganti.'
+        }
+        label="Alasan pembatalan"
+        confirmLabel="Batalkan donasi"
+        busy={voidDonation.isPending}
+        error={voidDonation.error}
+        onCancel={() => setVoiding(null)}
+        onConfirm={async (reason) => {
+          await voidDonation.mutateAsync({ p_id: voiding!.id, p_reason: reason })
+          setVoiding(null)
+        }}
       />
     </>
   )

@@ -204,17 +204,34 @@ tidak punya tempat untuk mencatat alasan per baris.
 
 ## 5. Koreksi dan pembatalan
 
-| Keadaan                                                | Yang dilakukan                                         |
-| ------------------------------------------------------ | ------------------------------------------------------ |
-| Salah isi, **belum diverifikasi**, entri milik sendiri | Amil dapat memperbaikinya langsung — lihat di bawah    |
-| Salah isi, **belum diverifikasi**, entri orang lain    | Bendahara dapat memperbaikinya sebelum memverifikasi   |
-| Salah isi apa pun, **sudah terverifikasi**             | **Batalkan** donasi lalu catat ulang dengan data benar |
-| Donasi tercatat dua kali                               | Batalkan salah satunya, alasan: duplikat               |
-| Uang dikembalikan ke donatur                           | Batalkan dengan alasan pengembalian                    |
+| Keadaan                                                                           | Yang dilakukan                                         |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Salah isi, **belum diverifikasi**, entri milik sendiri                            | Amil dapat memperbaikinya langsung — lihat di bawah    |
+| Salah isi, **belum diverifikasi**, entri orang lain                               | Bendahara dapat memperbaikinya sebelum memverifikasi   |
+| Salah **catatan, referensi, atau bukti**, sudah terverifikasi                     | Bendahara dapat memperbaikinya langsung                |
+| Salah **jumlah, jenis dana, program, tanggal, atau donatur**, sudah terverifikasi | **Batalkan** donasi lalu catat ulang dengan data benar |
+| Donasi tercatat dua kali                                                          | Batalkan salah satunya, alasan: duplikat               |
+| Uang dikembalikan ke donatur                                                      | Batalkan dengan alasan pengembalian                    |
 
 Membatalkan (_void_) selalu memerlukan alasan. Donasi yang dibatalkan tetap
 tersimpan lengkap dengan alasannya dan berhenti dihitung dalam saldo — inilah
 sebabnya tidak ada tombol hapus di sistem ini.
+
+### Membatalkan donasi yang sudah terverifikasi
+
+Pada daftar **Donasi**, baris yang sudah terverifikasi memiliki ikon larangan
+(bulatan bergaris) di sebelah ikon WhatsApp. Hanya bendahara dan ketua yang melihatnya.
+Sistem meminta alasan, lalu:
+
+- donasi keluar dari saldo, dasbor, dan seluruh laporan seketika;
+- barisnya tetap ada dengan status **Dibatalkan**, nomor kwitansinya tidak
+  didaur ulang, dan alasannya tersimpan pada data serta di log audit;
+- **kwitansi yang sudah terbit tidak ikut berubah.** Bila donatur sudah
+  menerimanya, beri tahu dan kirim kwitansi baru setelah donasi dicatat ulang.
+
+Untuk memperbaiki jumlah yang salah, urutannya adalah **batalkan lalu catat
+ulang** — bukan menghapus. Tidak ada peran, termasuk ketua, yang dapat menghapus
+donasi; basis data sendiri tidak menyediakan jalannya.
 
 ### Mengubah donasi yang belum diverifikasi
 
